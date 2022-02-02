@@ -134,3 +134,8 @@ pianoteq
 
 # no zip files
 *.zip
+
+# No image files
+*.jpg
+*.png
+*.mov
