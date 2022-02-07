@@ -6,6 +6,12 @@ from mutwo import dfc22_parameters
 
 
 class PolygonTest(unittest.TestCase):
+    def _test_point(self, result_point: geometer.Point, expected_point: geometer.Point):
+        for (result_axis, expected_axis,) in zip(
+            result_point.normalized_array[:2], expected_point.normalized_array[:2]
+        ):
+            self.assertAlmostEqual(expected_axis, round(result_axis, 5), places=4)
+
     def _test_point_tuple(
         self,
         result_point_tuple: tuple[geometer.Point, ...],
@@ -14,11 +20,37 @@ class PolygonTest(unittest.TestCase):
         for result_point, expected_point in zip(
             result_point_tuple, expected_point_tuple
         ):
-            for (
-                result_axis,
-                expected_axis,
-            ) in zip(result_point.array[:2], expected_point.array):
-                self.assertAlmostEqual(expected_axis, round(result_axis, 5), places=4)
+            self._test_point(result_point, expected_point)
+
+
+class SpecifiedPolygonTest(PolygonTest):
+    def test_next_point(self):
+        """Assert with various degrees that the next_point function works"""
+
+        self._test_point(
+            dfc22_parameters.Polygon._find_next_point(
+                geometer.Segment(geometer.Point(0, 0), geometer.Point(-1, 0)), 45, 2
+            ),
+            geometer.Point(0.41421356237309515, 1.4142135623730951),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._find_next_point(
+                geometer.Segment(geometer.Point(0, 0), geometer.Point(-1, 0)), 90, 2
+            ),
+            geometer.Point(-1, 2),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._find_next_point(
+                geometer.Segment(geometer.Point(0, 0), geometer.Point(-1, 0)), 180, 2
+            ),
+            geometer.Point(-3, 0),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._find_next_point(
+                geometer.Segment(geometer.Point(0, 0), geometer.Point(-1, 0)), 360, 3
+            ),
+            geometer.Point(2, 0),
+        )
 
 
 class TriangleTest(PolygonTest):
@@ -61,7 +93,7 @@ class TriangleTest(PolygonTest):
             geometer.Point(0, -0.57735),
         )
         result_point_tuple = dfc22_parameters.Polygon._rotate_point_tuple(
-            initial_point_tuple, 90
+            initial_point_tuple, 180
         )
         self._test_point_tuple(result_point_tuple, expected_point_tuple)
 
@@ -78,7 +110,7 @@ class TriangleTest(PolygonTest):
         self._test_point_tuple(tuple(polygon.vertices), expected_point_tuple)
 
 
-class QuadTest(unittest.TestCase):
+class QuadTest(PolygonTest):
     def test_angle_proportion_sequence_to_angle_tuple(self):
         self.assertEqual(
             dfc22_parameters.Quad._angle_proportion_sequence_to_angle_tuple(
@@ -93,8 +125,21 @@ class QuadTest(unittest.TestCase):
             (72, 36, 108, 144),
         )
 
+    def test_angles_and_lenghts_to_point_tuple(self):
+        # with equal angle and two different side lengths
+        result_point_tuple = dfc22_parameters.Quad._angles_and_lenghts_to_point_tuple(
+            (90, 90, 90, 90), (1, 2)
+        )
+        expected_point_tuple = (
+            geometer.Point(0, 0),
+            geometer.Point(-1, 0),
+            geometer.Point(-1, 2),
+            geometer.Point(0, 2),
+        )
+        self._test_point_tuple(result_point_tuple, expected_point_tuple)
 
-class PentagonTest(unittest.TestCase):
+
+class PentagonTest(PolygonTest):
     def test_angle_proportion_sequence_to_angle_tuple(self):
         self.assertEqual(
             dfc22_parameters.Pentagon._angle_proportion_sequence_to_angle_tuple(

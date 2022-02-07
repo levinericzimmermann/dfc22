@@ -33,7 +33,7 @@ __all__ = (
 
 
 def degree_to_radian(degree: float):
-    return (degree / 90) * math.pi
+    return (degree / 180) * math.pi
 
 
 class LetterCanvas(object):
@@ -196,18 +196,18 @@ class Polygon(LetterElement, geometer.Polygon):
         previous_segment: geometer.Segment, angle: float, length_proportion: float
     ) -> geometer.Point:
         # we get interior angle, but we need exterior angle
-        angle = 180 - angle
+        angle = - (180 - angle)
         # we get degree, but we need radian
         angle = degree_to_radian(angle)
         rotation_transformation = geometer.rotation(angle)
         scale_factor = length_proportion / previous_segment.length
         scale_transformation = geometer.scaling((scale_factor, scale_factor))
         normalization_transformation = geometer.translation(
-            *[-n for n in previous_segment.vertices[0].array[:2]]
+            *[-n for n in previous_segment.vertices[0].normalized_array[:2]]
         )
         normalized_segment = normalization_transformation.apply(previous_segment)
         movement_transformation = geometer.translation(
-            *previous_segment.vertices[1].array[:2]
+            *previous_segment.vertices[1].normalized_array[:2]
         )
         new_segment = movement_transformation.apply(
             scale_transformation.apply(
