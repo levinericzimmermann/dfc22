@@ -32,6 +32,10 @@ __all__ = (
 )
 
 
+def degree_to_radian(degree: float):
+    return (degree / 90) * math.pi
+
+
 class LetterCanvas(object):
     def __init__(self, x: float, y: float):
         self._x = x
@@ -194,7 +198,7 @@ class Polygon(LetterElement, geometer.Polygon):
         # we get interior angle, but we need exterior angle
         angle = 180 - angle
         # we get degree, but we need radian
-        angle = (angle / 90) * math.pi
+        angle = degree_to_radian(angle)
         rotation_transformation = geometer.rotation(angle)
         scale_factor = length_proportion / previous_segment.length
         scale_transformation = geometer.scaling((scale_factor, scale_factor))
@@ -227,7 +231,7 @@ class Polygon(LetterElement, geometer.Polygon):
     def _rotate_point_tuple(
         point_tuple: tuple[geometer.Point, ...], rotation_angle: float
     ) -> tuple[geometer.Point, ...]:
-        rotation = geometer.rotation(rotation_angle)
+        rotation = geometer.rotation(degree_to_radian(rotation_angle))
         return tuple(rotation.apply(geometer.Polygon(*point_tuple)).vertices)
 
     @classmethod

@@ -49,6 +49,22 @@ class TriangleTest(PolygonTest):
         )
         self._test_point_tuple(result_point_tuple, expected_point_tuple)
 
+    def test_rotate_point_tuple(self):
+        initial_point_tuple = (
+            geometer.Point(0.5, -0.28868),
+            geometer.Point(-0.5, -0.28868),
+            geometer.Point(0, 0.57735),
+        )
+        expected_point_tuple = (
+            geometer.Point(-0.5, 0.28868),
+            geometer.Point(0.5, 0.28868),
+            geometer.Point(0, -0.57735),
+        )
+        result_point_tuple = dfc22_parameters.Polygon._rotate_point_tuple(
+            initial_point_tuple, 90
+        )
+        self._test_point_tuple(result_point_tuple, expected_point_tuple)
+
     def test_from_angles_and_length(self):
         polygon = dfc22_parameters.Triangle.from_angles_and_lengths(
             angle_proportion_sequence=(60, 60, 60), length_proportion_sequence=(1,)
