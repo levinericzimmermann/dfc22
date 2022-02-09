@@ -109,6 +109,14 @@ class TriangleTest(PolygonTest):
         )
         self._test_point_tuple(tuple(polygon.vertices), expected_point_tuple)
 
+    def test_draw_on(self):
+        triangle = dfc22_parameters.Triangle.from_angles_and_lengths(
+            angle_proportion_sequence=(1, 1, 1), length_proportion_sequence=(1,)
+        )
+        letter_canvas = dfc22_parameters.LetterCanvas(800, 800)
+        triangle.draw_on(letter_canvas)
+        letter_canvas.surface.write_to_png("tests/parameters/triangle_draw_test.png")
+
 
 class QuadTest(PolygonTest):
     def test_angle_proportion_sequence_to_angle_tuple(self):
@@ -135,6 +143,31 @@ class QuadTest(PolygonTest):
             geometer.Point(-1, 0),
             geometer.Point(-1, 2),
             geometer.Point(0, 2),
+        )
+        self._test_point_tuple(result_point_tuple, expected_point_tuple)
+
+    def test_get_centroid(self):
+        quad = dfc22_parameters.Quad.from_angles_and_lengths(
+            angle_proportion_sequence=(1, 1, 1, 1),
+            length_proportion_sequence=(1, 1),
+            max_length=1,
+        )
+        letter_canvas = dfc22_parameters.LetterCanvas(100, 100)
+        self._test_point(quad.get_centroid(letter_canvas), geometer.Point(50, 50))
+
+    def test_get_adjusted_point_tuple(self):
+        quad = dfc22_parameters.Quad.from_angles_and_lengths(
+            angle_proportion_sequence=(1, 1, 1, 1),
+            length_proportion_sequence=(1, 1),
+            max_length=1,
+        )
+        letter_canvas = dfc22_parameters.LetterCanvas(100, 100)
+        result_point_tuple = quad._get_adjusted_point_tuple(letter_canvas)
+        expected_point_tuple = (
+            geometer.Point(100, 0),
+            geometer.Point(0, 0),
+            geometer.Point(0, 100),
+            geometer.Point(100, 100),
         )
         self._test_point_tuple(result_point_tuple, expected_point_tuple)
 

@@ -17,6 +17,7 @@ except ImportError:
     import fractions
 
 from mutwo import core_events
+from mutwo import core_utilities
 from mutwo import dfc22_parameters
 
 __all__ = (
@@ -41,6 +42,11 @@ class LetterCanvas(object):
         self._x = x
         self._y = y
         self._surface = qahirah.ImageSurface.create(qahirah.CAIRO.FORMAT_A8, (x, y))
+
+        # Make white background
+        context = qahirah.Context.create(self.surface)
+        context.source_colour = qahirah.Colour.x11["white"]
+        context.paint()
 
     @property
     def x(self) -> float:
@@ -71,7 +77,7 @@ class LetterElement(abc.ABC):
         the centroid of the element is on the horizontal edge.
     :param y_displacement: Value between -1 to +1. +/-1 means
         the centroid of the element is on the vertical edge.
-    :param thickness: Thickness of draw line.
+    :param thickness: Thickness of draw_on line.
     :param angle: Angle how much element is displaced.
         Default to 0. Value from 0 to 360
     """
@@ -81,8 +87,28 @@ class LetterElement(abc.ABC):
     thickness: float = 0
     angle: float = 0
 
+    @staticmethod
+    def _displacement_value_to_displacement_percentage(
+        displacement_value: float,
+    ) -> float:
+        return float(core_utilities.scale(displacement_value, -1, 1, 0, 1))
+
+    def get_centroid(self, letter_canvas: LetterCanvas) -> geometer.Point:
+        position_list = []
+        for size, displacement in (
+            (letter_canvas.x, self.x_displacement),
+            (letter_canvas.y, self.y_displacement),
+        ):
+            position_list.append(
+                size
+                * LetterElement._displacement_value_to_displacement_percentage(
+                    displacement
+                )
+            )
+        return geometer.Point(*position_list)
+
     @abc.abstractmethod
-    def draw(self, letter_canvas: LetterCanvas):
+    def draw_on(self, letter_canvas: LetterCanvas):
         raise NotImplementedError
 
 
@@ -91,7 +117,7 @@ class Polygon(LetterElement, geometer.Polygon):
         self,
         *args,
         point_sequence: typing.Sequence[geometer.Point],
-        # `True` if side should be drawn, `False` if it should be ignored
+        # `True` if side should be draw_onn, `False` if it should be ignored
         is_side_active_sequence: typing.Optional[typing.Sequence[bool]] = None,
         # 1 is max round, 0 is no round
         round_corner_strength_sequence: typing.Optional[typing.Sequence[float]] = None,
@@ -120,6 +146,12 @@ class Polygon(LetterElement, geometer.Polygon):
         self._is_side_active_tuple = tuple(is_side_active_sequence)
         self._round_corner_strength_tuple = tuple(round_corner_strength_sequence)
         self._max_length = max_length
+        self._length_proportion_tuple = tuple(
+            geometer.dist(point0, point1)
+            for point0, point1 in zip(
+                point_sequence, point_sequence[1:] + point_sequence[:1]
+            )
+        )
 
     @classmethod
     def from_angles_and_lengths(
@@ -196,7 +228,7 @@ class Polygon(LetterElement, geometer.Polygon):
         previous_segment: geometer.Segment, angle: float, length_proportion: float
     ) -> geometer.Point:
         # we get interior angle, but we need exterior angle
-        angle = - (180 - angle)
+        angle = -(180 - angle)
         # we get degree, but we need radian
         angle = degree_to_radian(angle)
         rotation_transformation = geometer.rotation(angle)
@@ -220,11 +252,15 @@ class Polygon(LetterElement, geometer.Polygon):
 
     @staticmethod
     def _centralise_point_tuple(
-        point_tuple: tuple[geometer.Point, ...]
+        point_tuple: tuple[geometer.Point, ...],
+        center: geometer.Point = geometer.Point(0, 0),
     ) -> tuple[geometer.Point, ...]:
         polygon = geometer.Polygon(*point_tuple)
         centroid = polygon.centroid
-        centralise = geometer.translation(-centroid[0], -centroid[1])
+        centralise = geometer.translation(
+            -centroid.normalized_array[0] + center.normalized_array[0],
+            -centroid.normalized_array[1] + center.normalized_array[1],
+        )
         return tuple(centralise.apply(polygon).vertices)
 
     @staticmethod
@@ -260,7 +296,7 @@ class Polygon(LetterElement, geometer.Polygon):
 
         # Now we have to figure out the last missing point.
         # We simply make two dummy points at the known angle
-        # to the already defined lines. We draw two lines, one
+        # to the already defined lines. We draw_on two lines, one
         # to each dummy point and we check where the two lines
         # are meeting. Than we know where our last point is.
         line_list = []
@@ -295,27 +331,52 @@ class Polygon(LetterElement, geometer.Polygon):
     def max_length(self) -> float:
         return self._max_length
 
+    @property
+    def length_proportion_tuple(self) -> tuple[float, ...]:
+        return self._length_proportion_tuple
+
     @classmethod
     @property
     @abc.abstractmethod
     def n_sides(cls) -> int:
         raise NotImplementedError
 
-    def draw(self, letter_canvas: LetterCanvas):
-        # SKALIERUNG DER LAENGEN ANGABEN:
-        #   "1" == komplette laenge der kuerzeren seite des canvas
-        #           -> die skalierung ist fuer x und y gleich, also der faktor wird
-        #              gleich angewendet
-        # +
+    def _get_scaled_point_tuple(self, letter_canvas: LetterCanvas):
+        length_of_shortest_side = min(letter_canvas.x, letter_canvas.y)
+        max_side_length = length_of_shortest_side * self.max_length
+        max_length_proportion = max(self.length_proportion_tuple)
+        scale_factor = max_side_length / max_length_proportion
+        scale_transformation = geometer.scaling((scale_factor, scale_factor))
+        scaled_polygon = scale_transformation.apply(self)
+        return tuple(scaled_polygon.vertices)
 
-        # OKAYYY
-        # das funktioniert sooo...
-        # (1) alle punkte ausrechnen (kannst du einfach ueber die wege und die winkel berechnen)
-        #       -> dabei davon ausgehen dass die erste linie unten 90grad gerade ist
-        # (2) die mitte von all diesen punkten ausrechnen : das ist auch die wirkliche mitte
-        #      - vielleicht kannst du online nach formel suchen, mit der man von x punkten die mitte berechnet
-        # (3) daraufhin alle punkte skalieren auf
-        raise NotImplementedError
+    def _get_adjusted_point_tuple(self, letter_canvas: LetterCanvas):
+        return Polygon._centralise_point_tuple(
+            self._get_scaled_point_tuple(letter_canvas),
+            self.get_centroid(letter_canvas),
+        )
+
+    def draw_on(self, letter_canvas: LetterCanvas):
+        """Draws polygon element on letter canvas."""
+
+        # Adjust polygon to letter canvas (scale and move)
+        adjusted_point_tuple = self._get_adjusted_point_tuple(letter_canvas)
+
+        context = qahirah.Context.create(letter_canvas.surface)
+        for point0, point1, is_side_active in zip(
+            adjusted_point_tuple,
+            adjusted_point_tuple[1:] + adjusted_point_tuple[1:],
+            self.is_side_active_tuple,
+        ):
+            if is_side_active:
+                x0, y0, *_ = point0.normalized_array
+                x1, y1, *_ = point1.normalized_array
+                context.move_to((x0, y0))
+                context.line_to((x1, y1))
+
+        context.source_colour = qahirah.Colour.x11["black"]
+        context.line_width = self.thickness
+        context.stroke()
 
 
 class Triangle(Polygon):
@@ -367,7 +428,7 @@ class Letter(dfc22_parameters.abc.Sign):
 
     def _paint(self):
         for letter in self.letter_element_list:
-            letter.draw(self.letter_canvas)
+            letter.draw_on(self.letter_canvas)
         png_file_name = f".mutwo_ext_filename_{uuid.uuid4()}.png"
         self._png_path = png_file_name
         self.letter_canvas.surface.write_to_png_file(png_file_name)
