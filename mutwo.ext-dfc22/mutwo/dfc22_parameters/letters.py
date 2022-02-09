@@ -41,7 +41,7 @@ class LetterCanvas(object):
     def __init__(self, x: float, y: float):
         self._x = x
         self._y = y
-        self._surface = qahirah.ImageSurface.create(qahirah.CAIRO.FORMAT_A8, (x, y))
+        self._surface = qahirah.ImageSurface.create(qahirah.CAIRO.FORMAT_ARGB32, (x, y))
 
         # Make white background
         context = qahirah.Context.create(self.surface)
@@ -84,7 +84,7 @@ class LetterElement(abc.ABC):
 
     x_displacement: float = 0
     y_displacement: float = 0
-    thickness: float = 0
+    thickness: float = 15
     angle: float = 0
 
     @staticmethod
@@ -359,20 +359,48 @@ class Polygon(LetterElement, geometer.Polygon):
     def draw_on(self, letter_canvas: LetterCanvas):
         """Draws polygon element on letter canvas."""
 
+        def get_coordinates(point: geometer.Point) -> tuple[float, float]:
+            x, y, *_ = point.normalized_array
+            return float(x), float(y)
+
+        def draw_line(
+            context: qahirah.Context,
+            point0: geometer.Point,
+            point1: geometer.Point,
+            last_side_was_active: bool,
+        ):
+            x0, y0 = get_coordinates(point0)
+            x1, y1 = get_coordinates(point1)
+            if not last_side_was_active:
+                context.move_to((x0, y0))
+            context.line_to((x1, y1))
+
         # Adjust polygon to letter canvas (scale and move)
         adjusted_point_tuple = self._get_adjusted_point_tuple(letter_canvas)
 
         context = qahirah.Context.create(letter_canvas.surface)
+        last_side_was_active = False
         for point0, point1, is_side_active in zip(
             adjusted_point_tuple,
-            adjusted_point_tuple[1:] + adjusted_point_tuple[1:],
+            adjusted_point_tuple[1:],
             self.is_side_active_tuple,
         ):
             if is_side_active:
-                x0, y0, *_ = point0.normalized_array
-                x1, y1, *_ = point1.normalized_array
-                context.move_to((x0, y0))
-                context.line_to((x1, y1))
+                draw_line(context, point0, point1, last_side_was_active)
+                last_side_was_active = True
+            else:
+                last_side_was_active = False
+
+        if self.is_side_active_tuple[-1]:
+            if self.is_side_active_tuple[0]:
+                context.close_path()
+            else:
+                draw_line(
+                    context,
+                    adjusted_point_tuple[-1],
+                    adjusted_point_tuple[0],
+                    last_side_was_active,
+                )
 
         context.source_colour = qahirah.Colour.x11["black"]
         context.line_width = self.thickness
