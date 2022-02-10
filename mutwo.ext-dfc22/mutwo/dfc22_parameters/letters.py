@@ -5,7 +5,6 @@ import abc
 import dataclasses
 import math
 import typing
-import uuid
 
 from PIL import Image
 import geometer
@@ -31,10 +30,6 @@ __all__ = (
     "LetterCanvas",
     "Letter",
 )
-
-
-def degree_to_radian(degree: float):
-    return (degree / 180) * math.pi
 
 
 class LetterCanvas(object):
@@ -232,7 +227,7 @@ class Polygon(LetterElement, geometer.Polygon):
         # we get interior angle, but we need exterior angle
         angle = -(180 - angle)
         # we get degree, but we need radian
-        angle = degree_to_radian(angle)
+        angle = math.radians(angle)
         rotation_transformation = geometer.rotation(angle)
         scale_factor = length_proportion / previous_segment.length
         scale_transformation = geometer.scaling((scale_factor, scale_factor))
@@ -269,7 +264,7 @@ class Polygon(LetterElement, geometer.Polygon):
     def _rotate_point_tuple(
         point_tuple: tuple[geometer.Point, ...], rotation_angle: float
     ) -> tuple[geometer.Point, ...]:
-        rotation = geometer.rotation(degree_to_radian(rotation_angle))
+        rotation = geometer.rotation(math.radians(rotation_angle))
         return tuple(rotation.apply(geometer.Polygon(*point_tuple)).vertices)
 
     @classmethod
@@ -444,10 +439,7 @@ class Polygon(LetterElement, geometer.Polygon):
             point_tuple = next(point_tuple_permutation)
             is_side_active_tuple = next(is_side_active_tuple_permutation)
 
-            while (
-                is_side_active_tuple[0]
-                and is_side_active_tuple[-1]
-            ):
+            while is_side_active_tuple[0] and is_side_active_tuple[-1]:
                 try:
                     point_tuple = next(point_tuple_permutation)
                     is_side_active_tuple = next(is_side_active_tuple_permutation)
@@ -468,6 +460,7 @@ class Polygon(LetterElement, geometer.Polygon):
         )
 
         context = qahirah.Context.create(letter_canvas.surface)
+        # TODO(apply round_corner_strength_tuple!)
         last_side_was_active = Polygon._draw_point_tuple_except_last_line(
             context, point_tuple, is_side_active_tuple
         )
@@ -523,25 +516,74 @@ class Ellipsis(LetterElement):
         self.activity_sequential_event = activity_sequential_event
 
 
+class Circle(LetterElement):
+    _circle_maxima = 2 * math.pi
+
+    def __init__(
+        self,
+        *args,
+        activity_tuple_sequence: typing.Sequence[tuple[float, bool]] = ((1, True),),
+        radius_proportion: float = 0.5,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._activity_tuple_sequence = activity_tuple_sequence
+        self.radius_proportion = radius_proportion
+
+    def _draw_arc_parts(
+        self,
+        context: qahirah.Context,
+        centre: tuple[float, float],
+        radius: float,
+        summed_length_proportion: float,
+    ):
+        position_percentage = 0
+        for length_proportion, is_active in self._activity_tuple_sequence:
+            new_position_percentage = position_percentage + (
+                length_proportion / summed_length_proportion
+            )
+            if is_active:
+                start_radian, end_radian = (
+                    core_utilities.scale(position, 0, 1, 0, self._circle_maxima)
+                    for position in (position_percentage, new_position_percentage)
+                )
+                context.arc(centre, radius, start_radian, end_radian, 0)
+
+            position_percentage = new_position_percentage
+
+    def draw_on(self, letter_canvas: LetterCanvas):
+        """Draws circle element on letter canvas."""
+
+        centre = Polygon._point_to_coordinate_tuple(self.get_centroid(letter_canvas))
+        radius = self.radius_proportion * min((letter_canvas.x, letter_canvas.y))
+
+        length_proportion_tuple, _ = zip(*self._activity_tuple_sequence)
+        summed_length_proportion = sum(length_proportion_tuple)
+        context = qahirah.Context.create(letter_canvas.surface)
+        self._draw_arc_parts(context, centre, radius, summed_length_proportion)
+
+        context.source_colour = self.color
+        context.line_width = self.thickness
+        context.stroke()
+
+
 @dataclasses.dataclass()
 class Letter(dfc22_parameters.abc.Sign):
     letter_canvas: LetterCanvas
     letter_element_list: list[LetterElement]
-    _png_path: typing.Optional[str] = None
+    _image: typing.Optional[Image.Image] = None
 
     def _paint(self):
         for letter in self.letter_element_list:
             letter.draw_on(self.letter_canvas)
-        png_file_name = f".mutwo_ext_filename_{uuid.uuid4()}.png"
-        self._png_path = png_file_name
-        self.letter_canvas.surface.write_to_png_file(png_file_name)
+        self._image = Image.open(self.letter_canvas.surface.to_png_bytes())
 
     @property
     def image(self) -> Image.Image:
-        if self._png_path is None:
+        if self._image is None:
             self._paint()
             return self.image
-        return Image.open(self._png_path)
+        return self._image
 
     @property
     def phoneme_list(self):
