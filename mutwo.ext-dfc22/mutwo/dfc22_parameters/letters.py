@@ -45,6 +45,9 @@ class LetterCanvas(object):
         context.source_colour = qahirah.Colour.x11["white"]
         context.paint()
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(x = {self.x}, y = {self.y}"
+
     @property
     def x(self) -> float:
         return self._x
@@ -591,7 +594,7 @@ class Letter(dfc22_parameters.abc.Sign):
         # Image.Open(surface.to_png_bytes()) doesn't work!
         # Therefore the workaround by saving the data to a
         # temp file..
-        tmp_name = '.tmp_letter.png'
+        tmp_name = ".tmp_letter.png"
         self.letter_canvas.surface.write_to_png(tmp_name)
         self._image = Image.open(tmp_name)
         os.remove(tmp_name)
