@@ -3,6 +3,7 @@
 
 import abc
 import dataclasses
+import os
 import math
 import typing
 
@@ -27,13 +28,14 @@ __all__ = (
     "Pentagon",
     "Hexagon",
     "Ellipsis",
+    "Circle",
     "LetterCanvas",
     "Letter",
 )
 
 
 class LetterCanvas(object):
-    def __init__(self, x: float, y: float):
+    def __init__(self, x: float = 800, y: float = 800):
         self._x = x
         self._y = y
         self._surface = qahirah.ImageSurface.create(qahirah.CAIRO.FORMAT_ARGB32, (x, y))
@@ -123,7 +125,6 @@ class Polygon(LetterElement, geometer.Polygon):
         max_length: float = 0.5,
         **kwargs,
     ):
-
         if is_side_active_sequence is None:
             is_side_active_sequence = [True for _ in range(self.n_sides)]
         if round_corner_strength_sequence is None:
@@ -149,6 +150,17 @@ class Polygon(LetterElement, geometer.Polygon):
                 point_sequence, point_sequence[1:] + point_sequence[:1]
             )
         )
+
+    def __str__(self) -> str:
+        return (
+            f"{type(self).__name__}(length_proportion_tuple = {self.length_proportion_tuple}, "
+            f"is_side_active_tuple = {self.is_side_active_tuple}, "
+            f"round_corner_strength_tuple = {self.round_corner_strength_tuple}, "
+            f"max_length = {self.max_length})"
+        )
+
+    def __repr__(self) -> str:
+        return str(self)
 
     @classmethod
     def from_angles_and_lengths(
@@ -576,7 +588,13 @@ class Letter(dfc22_parameters.abc.Sign):
     def _paint(self):
         for letter in self.letter_element_list:
             letter.draw_on(self.letter_canvas)
-        self._image = Image.open(self.letter_canvas.surface.to_png_bytes())
+        # Image.Open(surface.to_png_bytes()) doesn't work!
+        # Therefore the workaround by saving the data to a
+        # temp file..
+        tmp_name = '.tmp_letter.png'
+        self.letter_canvas.surface.write_to_png(tmp_name)
+        self._image = Image.open(tmp_name)
+        os.remove(tmp_name)
 
     @property
     def image(self) -> Image.Image:
