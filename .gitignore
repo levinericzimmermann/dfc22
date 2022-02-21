@@ -139,3 +139,9 @@ pianoteq
 *.jpg
 *.png
 *.mov
+
+# buildout ignore
+bin/
+parts/
+eggs/
+develop-eggs/
