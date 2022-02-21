@@ -2,7 +2,7 @@ from PIL import Image
 
 from mutwo import dfc22_parameters
 
-__all__ = ("SignElement", "SignGrid")
+__all__ = ("SignElement", "SignGrid", "PhonemeList")
 
 PhonemeList = list[list[dfc22_parameters.XSAMPAPhoneme]]
 

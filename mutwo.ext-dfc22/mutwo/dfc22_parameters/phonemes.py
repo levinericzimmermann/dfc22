@@ -9,7 +9,7 @@ class XSAMPAPhoneme(object):
         return self._phoneme
 
     def __repr__(self) -> str:
-        return "XSAMPAPhoneme({self._phoneme})"
+        return f"XSAMPAPhoneme({self._phoneme})"
 
     def __hash__(self) -> int:
         return hash(self._phoneme)

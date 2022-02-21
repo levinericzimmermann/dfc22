@@ -7,6 +7,8 @@ import itertools
 import operator
 import typing
 
+import numpy as np
+
 from mutwo import core_converters
 from mutwo import core_utilities
 from mutwo import dfc22_generators
@@ -20,6 +22,7 @@ __all__ = (
     "SpecifyUncertainDict",
     "SpecifyUncertainLetterElement",
     "SpecifyUncertainLetter",
+    "SpecifyUncertainIsSideActiveSequence",
 )
 
 
@@ -27,6 +30,9 @@ T = typing.TypeVar("T", bound=dfc22_generators.UncertainElement)
 
 
 class SpecifyUncertainElement(core_converters.abc.Converter):
+    def __init__(self, seed: int =1000):
+        self._random = np.random.default_rng(seed)
+
     @abc.abstractmethod
     def convert(
         self, uncertain_element_to_specifcy: T, n_specifications: int
@@ -59,6 +65,7 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
 
     def __init__(self, factor: float = 0):
         self._factor = factor
+        super().__init__()
 
     def _get_specification_and_seperator_length(
         self,
@@ -122,6 +129,8 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
                 resolution_strategy=uncertain_range_to_specify.resolution_strategy,
             )
             specified_range_list.append(specified_range)
+        # To ensure two ranges don't produce the same outputs
+        self._random.shuffle(specified_range_list)
         return tuple(specified_range_list)
 
     def _convert_to_parts_with_gaps(
@@ -178,6 +187,7 @@ class SpecifyUncertainSet(SpecifyUncertainElement):
     """
 
     def __init__(self, percentage_of_elements_per_specification: float = 0.25):
+        super().__init__()
         self._percentage_of_elements_per_specification = (
             percentage_of_elements_per_specification
         )
@@ -213,6 +223,7 @@ class SpecifyUncertainSet(SpecifyUncertainElement):
                 resolution_strategy=uncertain_element_to_specifcy.resolution_strategy,
             )
             specified_set_list.append(uncertain_set)
+        self._random.shuffle(specified_set_list)
         return tuple(specified_set_list)
 
 
@@ -278,6 +289,30 @@ class SpecifyUncertainDict(SpecifyUncertainSet):
         return tuple(specified_dict_list)
 
 
+class SpecifyUncertainIsSideActiveSequence(SpecifyUncertainElement):
+    def convert(
+        self,
+        uncertain_element_to_specifcy: dfc22_generators.UncertainIsSideActiveSequence,
+        n_specifications: int,
+    ) -> tuple[dfc22_generators.UncertainSet, ...]:
+        assert n_specifications > 0
+        specification_list = []
+        for nth_side, side in enumerate(uncertain_element_to_specifcy):
+            if not isinstance(side, bool):
+                sides_before = uncertain_element_to_specifcy[:nth_side]
+                sides_after = uncertain_element_to_specifcy[nth_side + 1 :]
+                for state in side:
+                    specification = dfc22_generators.UncertainIsSideActiveSequence(
+                        sides_before + [state] + sides_after
+                    )
+                    if not all([state is False for state in specification]):
+                        specification_list.append(specification)
+        if not specification_list:
+            specification_list = [uncertain_element_to_specifcy]
+        specification_cycle = itertools.cycle(specification_list)
+        return tuple(next(specification_cycle) for _ in range(n_specifications))
+
+
 class SpecifyUncertainLetterElement(SpecifyUncertainElement):
     def __init__(
         self,
@@ -287,6 +322,7 @@ class SpecifyUncertainLetterElement(SpecifyUncertainElement):
             dfc22_generators.UncertainRange: SymmetricalSpecifyUncertainRange(1),
             dfc22_generators.UncertainSet: SpecifyUncertainSet(),
             dfc22_generators.UncertainDict: SpecifyUncertainDict(),
+            dfc22_generators.UncertainIsSideActiveSequence: SpecifyUncertainIsSideActiveSequence(),
         },
     ):
         self._atomic_type_to_specification_dict = atomic_type_to_specification_dict

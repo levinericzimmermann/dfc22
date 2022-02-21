@@ -582,11 +582,26 @@ class Circle(LetterElement):
         context.stroke()
 
 
-@dataclasses.dataclass()
 class Letter(dfc22_parameters.abc.Sign):
-    letter_canvas: LetterCanvas
-    letter_element_list: list[LetterElement]
-    _image: typing.Optional[Image.Image] = None
+    def __init__(
+        self,
+        letter_canvas: LetterCanvas,
+        letter_element_list: list[LetterElement],
+        phoneme_list: dfc22_parameters.PhonemeList,
+        margin_percentage: float = 0.1,
+    ):
+        self.letter_canvas = letter_canvas
+        self.letter_element_list = letter_element_list
+        self._phoneme_list = phoneme_list
+        self._image: typing.Optional[Image.Image] = None
+        self._margin_percentage = margin_percentage
+
+    def __repr__(self):
+        return (
+            f"{type(self).__name__}(letter_canvas={self.letter_canvas}, "
+            f"letter_element_list={self.letter_element_list}, "
+            f"phoneme_list={self.phoneme_list})"
+        )
 
     def _paint(self):
         for letter in self.letter_element_list:
@@ -596,8 +611,21 @@ class Letter(dfc22_parameters.abc.Sign):
         # temp file..
         tmp_name = ".tmp_letter.png"
         self.letter_canvas.surface.write_to_png(tmp_name)
-        self._image = Image.open(tmp_name)
+        base_image = Image.open(tmp_name)
+        margin_size = int(max(base_image.size) * self._margin_percentage)
+        margin_added = margin_size * 2
+        new_image = Image.new(
+            base_image.mode,
+            tuple(size + margin_added for size in base_image.size),
+            color='white',
+        )
+        new_image.paste(base_image, (margin_size, margin_size))
+        self._image = new_image
         os.remove(tmp_name)
+
+    @property
+    def margin_percentage(self) -> float:
+        return self._margin_percentage
 
     @property
     def image(self) -> Image.Image:
@@ -607,5 +635,5 @@ class Letter(dfc22_parameters.abc.Sign):
         return self._image
 
     @property
-    def phoneme_list(self):
-        pass
+    def phoneme_list(self) -> dfc22_parameters.PhonemeList:
+        return self._phoneme_list

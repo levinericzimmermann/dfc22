@@ -26,6 +26,7 @@ __all__ = (
     "ConvertToSequence",
     "UncertainLetterElement",
     "UncertainPolygon",
+    "UncertainIsSideActiveSequence",
     "UncertainTriangle",
     "UncertainQuad",
     "UncertainPentagon",
@@ -90,7 +91,10 @@ class UncertainElementWithResolutionStrategy(UncertainElement):
         return self.resolution_strategy(self)
 
 
-class UncertainSet(UncertainElementWithResolutionStrategy, set):
+class UncertainSet(UncertainElementWithResolutionStrategy, list):
+    # Inherit from list and not from list to avoid removing
+    # duplicates.
+
     def __init__(
         self,
         iterable: typing.Iterable,
@@ -98,7 +102,7 @@ class UncertainSet(UncertainElementWithResolutionStrategy, set):
     ):
         if resolution_strategy is None:
             resolution_strategy = RandomChoice()
-        set.__init__(self, iterable)
+        list.__init__(self, iterable)
         UncertainElementWithResolutionStrategy.__init__(self, resolution_strategy)
 
     def resolve(self) -> typing.Any:
@@ -222,8 +226,8 @@ class UncertainCallable(UncertainElement):
     def get_argument(self, name: str) -> typing.Any:
         return self.argument_to_resolvable_object_dict[name]
 
-    def resolve(self) -> typing.Any:
-        return self.callable_object(**self.argument_to_resolution_dict)
+    def resolve(self, **kwargs) -> typing.Any:
+        return self.callable_object(**dict(self.argument_to_resolution_dict, **kwargs))
 
 
 class RandomResolutionStrategy(ResolutionStrategy):
@@ -277,9 +281,9 @@ class UncertainLetterElement(UncertainCallable):
     def __init__(
         self,
         letter_element_constructor: typing.Callable,
-        thickness=UncertainRange(10, 30),
-        x_displacement=UncertainRange(-0.5, 0.5),
-        y_displacement=UncertainRange(-0.5, 0.5),
+        thickness=UncertainRange(4, 30),
+        x_displacement=UncertainRange(-0.75, 0.75),
+        y_displacement=UncertainRange(-0.75, 0.75),
         **argument_for_callable,
     ):
         super().__init__(
@@ -289,6 +293,10 @@ class UncertainLetterElement(UncertainCallable):
             thickness=thickness,
             **argument_for_callable,
         )
+
+
+class UncertainIsSideActiveSequence(UncertainSequence):
+    pass
 
 
 class UncertainPolygon(UncertainLetterElement):
@@ -303,13 +311,8 @@ class UncertainPolygon(UncertainLetterElement):
         **kwargs,
     ):
         if not is_side_active_sequence:
-            import itertools
-            boolean_cycle = itertools.cycle((True, True, False))
-            is_side_active_sequence = UncertainSequence(
-                [
-                    next(boolean_cycle)
-                    for _ in range(self.polygon_class.n_sides)
-                ]
+            is_side_active_sequence = UncertainIsSideActiveSequence(
+                [UncertainSet([True, False]) for _ in range(self.polygon_class.n_sides)]
             )
         if not round_corner_strength_sequence:
             round_corner_strength_sequence = UncertainSequence(

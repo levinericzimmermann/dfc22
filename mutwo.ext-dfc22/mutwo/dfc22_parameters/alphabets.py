@@ -42,15 +42,10 @@ simply use the same instance as the parent node.
     the elements.
 """
 
-from mutwo import dfc22_converters
-from mutwo import dfc22_generators
+from mutwo import dfc22_parameters
 
 
-def specify_letter():
-    uncertain_letter = dfc22_generators.UncertainLetter()
-    specify_uncertain_letter = dfc22_converters.SpecifyUncertainLetter()
-    specified_letter_list = specify_uncertain_letter.convert(uncertain_letter, 5)
-    letter_list = [sl.resolve() for sl in specified_letter_list]
-    for nth, letter in enumerate(letter_list):
-        print(letter)
-        letter.image.save(f'img-test-{nth}.png')
+__all__ = ("Alphabet",)
+
+class Alphabet(tuple[dfc22_parameters.Letter, ...]):
+    pass

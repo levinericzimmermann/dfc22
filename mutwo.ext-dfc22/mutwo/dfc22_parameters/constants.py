@@ -16,7 +16,7 @@ XSAMPA_VOCAL_TO_FORMANT_FREQUENCY_TUPLE_DICT = {
     "o": (360, 640),
     "M": (300, 1390),
     "u": (250, 595),
-    # difference reference!
+    # different reference!
     "@": (665, 1772),
 }
 """Average vowel formants for a male voice.
