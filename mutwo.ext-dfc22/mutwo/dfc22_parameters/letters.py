@@ -608,7 +608,7 @@ class Letter(dfc22_parameters.abc.Sign):
             letter.draw_on(self.letter_canvas)
         # Image.Open(surface.to_png_bytes()) doesn't work!
         # Therefore the workaround by saving the data to a
-        # temp file..
+        # tmp file.
         tmp_name = ".tmp_letter.png"
         self.letter_canvas.surface.write_to_png(tmp_name)
         base_image = Image.open(tmp_name)

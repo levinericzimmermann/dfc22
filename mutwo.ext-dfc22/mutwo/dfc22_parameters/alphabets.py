@@ -47,5 +47,23 @@ from mutwo import dfc22_parameters
 
 __all__ = ("Alphabet",)
 
+
 class Alphabet(tuple[dfc22_parameters.Letter, ...]):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        phoneme_to_letter_list = {}
+        for letter in self:
+            for phoneme_sub_list in letter.phoneme_list:
+                for phoneme in phoneme_sub_list:
+                    if phoneme not in phoneme_to_letter_list:
+                        phoneme_to_letter_list.update({phoneme: []})
+                    phoneme_to_letter_list[phoneme].append(letter)
+        self._phoneme_to_letter_tuple = {
+            phoneme: tuple(letter_list)
+            for phoneme, letter_list in phoneme_to_letter_list.items()
+        }
+
+    def get_letter_tuple(
+        self, phoneme: dfc22_parameters.XSAMPAPhoneme
+    ) -> dfc22_parameters.Letter:
+        return self._phoneme_to_letter_tuple[phoneme]

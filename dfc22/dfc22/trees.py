@@ -3,7 +3,6 @@ import typing
 import treelib
 
 from mutwo import dfc22_converters
-from mutwo import dfc22_generators
 from mutwo import dfc22_parameters
 from mutwo import isis_converters
 
@@ -34,6 +33,7 @@ class PhonemeTree(treelib.Tree):
             "u-vowel": ("u", "y"),
         },
         "consonant": {
+            "semi_vowel_tuple": isis_converters.constants.XSAMPA.semi_vowel_tuple,
             "voiced_fricative": isis_converters.constants.XSAMPA.voiced_fricative_tuple,
             "unvoiced_fricative": isis_converters.constants.XSAMPA.unvoiced_fricative_tuple,
             "voiced_plosive": isis_converters.constants.XSAMPA.voiced_plosive_tuple,
@@ -92,10 +92,10 @@ class PhonemeTree(treelib.Tree):
 
     def create_alphabet(
         self,
-        urletter: dfc22_generators.UncertainLetter = dfc22_generators.UncertainLetter(),
+        urletter: dfc22_parameters.UncertainLetter = dfc22_parameters.UncertainLetter(),
     ) -> dfc22_parameters.Alphabet:
         def get_letter_list(
-            uncertain_letter: dfc22_generators.UncertainLetter, node: treelib.Node
+            uncertain_letter: dfc22_parameters.UncertainLetter, node: treelib.Node
         ) -> list[dfc22_parameters.Letter]:
             child_id_list = node.fpointer
             if child_id_list:
@@ -136,12 +136,12 @@ def main():
         0.6,
         specify_uncertain_letter_element=dfc22_converters.SpecifyUncertainLetterElement(
             {
-                dfc22_generators.UncertainRange: dfc22_converters.SymmetricalSpecifyUncertainRange(
+                dfc22_parameters.UncertainRange: dfc22_converters.SymmetricalSpecifyUncertainRange(
                     2
                 ),
-                dfc22_generators.UncertainSet: dfc22_converters.SpecifyUncertainSet(),
-                dfc22_generators.UncertainDict: dfc22_converters.SpecifyUncertainDict(),
-                dfc22_generators.UncertainIsSideActiveSequence: dfc22_converters.SpecifyUncertainIsSideActiveSequence(),
+                dfc22_parameters.UncertainSet: dfc22_converters.SpecifyUncertainSet(),
+                dfc22_parameters.UncertainDict: dfc22_converters.SpecifyUncertainDict(),
+                dfc22_parameters.UncertainIsSideActiveSequence: dfc22_converters.SpecifyUncertainIsSideActiveSequence(),
             }
         ),
     )
@@ -149,12 +149,12 @@ def main():
         0.75,
         specify_uncertain_letter_element=dfc22_converters.SpecifyUncertainLetterElement(
             {
-                dfc22_generators.UncertainRange: dfc22_converters.SymmetricalSpecifyUncertainRange(
+                dfc22_parameters.UncertainRange: dfc22_converters.SymmetricalSpecifyUncertainRange(
                     0.5
                 ),
-                dfc22_generators.UncertainSet: dfc22_converters.SpecifyUncertainSet(),
-                dfc22_generators.UncertainDict: dfc22_converters.SpecifyUncertainDict(),
-                dfc22_generators.UncertainIsSideActiveSequence: dfc22_converters.SpecifyUncertainIsSideActiveSequence(),
+                dfc22_parameters.UncertainSet: dfc22_converters.SpecifyUncertainSet(),
+                dfc22_parameters.UncertainDict: dfc22_converters.SpecifyUncertainDict(),
+                dfc22_parameters.UncertainIsSideActiveSequence: dfc22_converters.SpecifyUncertainIsSideActiveSequence(),
             }
         ),
     )
@@ -162,12 +162,12 @@ def main():
         0.95,
         specify_uncertain_letter_element=dfc22_converters.SpecifyUncertainLetterElement(
             {
-                dfc22_generators.UncertainRange: dfc22_converters.SymmetricalSpecifyUncertainRange(
+                dfc22_parameters.UncertainRange: dfc22_converters.SymmetricalSpecifyUncertainRange(
                     0.25
                 ),
-                dfc22_generators.UncertainSet: dfc22_converters.SpecifyUncertainSet(),
-                dfc22_generators.UncertainDict: dfc22_converters.SpecifyUncertainDict(),
-                dfc22_generators.UncertainIsSideActiveSequence: dfc22_converters.SpecifyUncertainIsSideActiveSequence(),
+                dfc22_parameters.UncertainSet: dfc22_converters.SpecifyUncertainSet(),
+                dfc22_parameters.UncertainDict: dfc22_converters.SpecifyUncertainDict(),
+                dfc22_parameters.UncertainIsSideActiveSequence: dfc22_converters.SpecifyUncertainIsSideActiveSequence(),
             }
         ),
     )
@@ -184,185 +184,232 @@ def main():
 
     phoneme_tree = PhonemeTree(node_to_specify_letter=node_to_specify_letter_dict)
     alphabet = phoneme_tree.create_alphabet(
-        dfc22_generators.UncertainLetter(
+        dfc22_parameters.UncertainLetter(
             letter_canvas=dfc22_parameters.LetterCanvas(400, 800),
             uncertain_letter_element_sequence=[
-                dfc22_generators.UncertainQuad(
-                    length_proportion_sequence=dfc22_generators.UncertainSequence(
+                dfc22_parameters.UncertainQuad(
+                    length_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(1, 1.2),
-                            dfc22_generators.UncertainRange(0.8, 1),
+                            dfc22_parameters.UncertainRange(1, 1.2),
+                            dfc22_parameters.UncertainRange(0.8, 1),
                         ]
                     ),
-                    angle_proportion_sequence=dfc22_generators.UncertainSequence(
+                    angle_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(0.5, 0.94),
-                            dfc22_generators.UncertainRange(1, 2),
-                            dfc22_generators.UncertainRange(0.6, 1),
-                            dfc22_generators.UncertainRange(1.2, 2),
+                            dfc22_parameters.UncertainRange(0.5, 0.94),
+                            dfc22_parameters.UncertainRange(1, 2),
+                            dfc22_parameters.UncertainRange(0.6, 1),
+                            dfc22_parameters.UncertainRange(1.2, 2),
                         ]
                     ),
-                    max_length=dfc22_generators.UncertainRange(0.5, 0.9),
-                    is_side_active_sequence=dfc22_generators.UncertainIsSideActiveSequence(
+                    max_length=dfc22_parameters.UncertainRange(0.5, 0.9),
+                    is_side_active_sequence=dfc22_parameters.UncertainIsSideActiveSequence(
                         [
                             True,
                             True,
-                            dfc22_generators.UncertainSet([True, False]),
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainHexagon(
-                    angle_proportion_sequence=dfc22_generators.UncertainSequence(
+                dfc22_parameters.UncertainHexagon(
+                    angle_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(2, 3),
-                            dfc22_generators.UncertainRange(0.1, 0.3),
-                            dfc22_generators.UncertainRange(2, 3),
-                            dfc22_generators.UncertainRange(0.5, 1),
-                            dfc22_generators.UncertainRange(2, 3),
-                            dfc22_generators.UncertainRange(2, 3),
+                            dfc22_parameters.UncertainRange(2, 3),
+                            dfc22_parameters.UncertainRange(0.1, 0.3),
+                            dfc22_parameters.UncertainRange(2, 3),
+                            dfc22_parameters.UncertainRange(0.5, 1),
+                            dfc22_parameters.UncertainRange(2, 3),
+                            dfc22_parameters.UncertainRange(2, 3),
                         ]
                     ),
-                    length_proportion_sequence=dfc22_generators.UncertainSequence(
+                    length_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(1, 1.2),
-                            dfc22_generators.UncertainRange(0.8, 1),
-                            dfc22_generators.UncertainRange(1, 1.2),
-                            dfc22_generators.UncertainRange(0.8, 1),
+                            dfc22_parameters.UncertainRange(1, 1.2),
+                            dfc22_parameters.UncertainRange(0.8, 1),
+                            dfc22_parameters.UncertainRange(1, 1.2),
+                            dfc22_parameters.UncertainRange(0.8, 1),
                         ]
                     ),
-                    max_length=dfc22_generators.UncertainRange(0.7, 0.9),
-                    is_side_active_sequence=dfc22_generators.UncertainIsSideActiveSequence(
+                    max_length=dfc22_parameters.UncertainRange(0.7, 0.9),
+                    is_side_active_sequence=dfc22_parameters.UncertainIsSideActiveSequence(
                         [
                             True,
-                            dfc22_generators.UncertainSet([True, False]),
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                             True,
-                            dfc22_generators.UncertainSet([True, False]),
-                            True,
-                        ]
-                    ),
-                ),
-                dfc22_generators.UncertainHexagon(
-                    angle_proportion_sequence=dfc22_generators.UncertainSequence(
-                        [
-                            dfc22_generators.UncertainRange(1, 2),
-                            dfc22_generators.UncertainRange(0.5, 0.8),
-                            dfc22_generators.UncertainRange(1, 2),
-                            dfc22_generators.UncertainRange(0.5, 1),
-                            dfc22_generators.UncertainRange(1, 2),
-                            dfc22_generators.UncertainRange(0.5, 1),
-                        ]
-                    ),
-                    length_proportion_sequence=dfc22_generators.UncertainSequence(
-                        [
-                            dfc22_generators.UncertainRange(0.8, 1),
-                            dfc22_generators.UncertainRange(1, 1.2),
-                            dfc22_generators.UncertainRange(1, 1.2),
-                            dfc22_generators.UncertainRange(0.8, 1),
-                        ]
-                    ),
-                    max_length=dfc22_generators.UncertainRange(0.5, 0.9),
-                    is_side_active_sequence=dfc22_generators.UncertainIsSideActiveSequence(
-                        [
-                            True,
-                            dfc22_generators.UncertainSet([True, False]),
-                            dfc22_generators.UncertainSet([True, False]),
-                            True,
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                             True,
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainTriangle(
-                    rotation_angle=dfc22_generators.UncertainRange(0, 30),
-                    max_length=dfc22_generators.UncertainRange(0.6, 1.2),
-                    angle_proportion_sequence=dfc22_generators.UncertainSequence(
+                dfc22_parameters.UncertainHexagon(
+                    angle_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(1, 2),
-                            dfc22_generators.UncertainRange(0.5, 0.6),
-                            dfc22_generators.UncertainRange(1, 2.2),
+                            dfc22_parameters.UncertainRange(1, 2),
+                            dfc22_parameters.UncertainRange(0.5, 0.8),
+                            dfc22_parameters.UncertainRange(1, 2),
+                            dfc22_parameters.UncertainRange(0.5, 1),
+                            dfc22_parameters.UncertainRange(1, 2),
+                            dfc22_parameters.UncertainRange(0.5, 1),
                         ]
                     ),
-                    is_side_active_sequence=dfc22_generators.UncertainIsSideActiveSequence(
+                    length_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainSet([True, False]),
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainRange(0.8, 1),
+                            dfc22_parameters.UncertainRange(1, 1.2),
+                            dfc22_parameters.UncertainRange(1, 1.2),
+                            dfc22_parameters.UncertainRange(0.8, 1),
+                        ]
+                    ),
+                    max_length=dfc22_parameters.UncertainRange(0.5, 0.9),
+                    is_side_active_sequence=dfc22_parameters.UncertainIsSideActiveSequence(
+                        [
+                            True,
+                            dfc22_parameters.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
+                            True,
+                            dfc22_parameters.UncertainSet([True, False]),
+                            True,
+                        ]
+                    ),
+                ),
+                dfc22_parameters.UncertainTriangle(
+                    rotation_angle=dfc22_parameters.UncertainRange(0, 30),
+                    max_length=dfc22_parameters.UncertainRange(0.6, 1.2),
+                    angle_proportion_sequence=dfc22_parameters.UncertainSequence(
+                        [
+                            dfc22_parameters.UncertainRange(1, 2),
+                            dfc22_parameters.UncertainRange(0.5, 0.6),
+                            dfc22_parameters.UncertainRange(1, 2.2),
+                        ]
+                    ),
+                    is_side_active_sequence=dfc22_parameters.UncertainIsSideActiveSequence(
+                        [
+                            dfc22_parameters.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                             False,
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainTriangle(
-                    rotation_angle=dfc22_generators.UncertainRange(0, 30),
-                    max_length=dfc22_generators.UncertainRange(0.7, 1),
-                    angle_proportion_sequence=dfc22_generators.UncertainSequence(
+                dfc22_parameters.UncertainTriangle(
+                    rotation_angle=dfc22_parameters.UncertainRange(0, 30),
+                    max_length=dfc22_parameters.UncertainRange(0.7, 1),
+                    angle_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(0.9, 1.3),
-                            dfc22_generators.UncertainRange(0.7, 1.5),
-                            dfc22_generators.UncertainRange(0.1, 1),
+                            dfc22_parameters.UncertainRange(0.9, 1.3),
+                            dfc22_parameters.UncertainRange(0.7, 1.5),
+                            dfc22_parameters.UncertainRange(0.1, 1),
                         ],
                     ),
-                    is_side_active_sequence=dfc22_generators.UncertainIsSideActiveSequence(
+                    is_side_active_sequence=dfc22_parameters.UncertainIsSideActiveSequence(
                         [
-                            dfc22_generators.UncertainSet([True, False]),
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                             False,
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainCircle(
-                    radius_proportion=dfc22_generators.UncertainRange(0.4, 0.7),
-                    activity_tuple_sequence=dfc22_generators.UncertainSet(
+                dfc22_parameters.UncertainCircle(
+                    radius_proportion=dfc22_parameters.UncertainRange(0.4, 0.7),
+                    activity_tuple_sequence=dfc22_parameters.UncertainSet(
                         [
                             [(0.25, False), (0.3, True), (0.8, False), (0.1, True)],
                             [(0.15, True), (0.8, False)],
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainCircle(
-                    radius_proportion=dfc22_generators.UncertainRange(0.7, 0.95),
-                    activity_tuple_sequence=dfc22_generators.UncertainSet(
+                dfc22_parameters.UncertainCircle(
+                    radius_proportion=dfc22_parameters.UncertainRange(0.7, 0.95),
+                    activity_tuple_sequence=dfc22_parameters.UncertainSet(
                         [
                             [(0.9, True), (0.3, False)],
                             [(0.15, True), (0.8, False)],
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainCircle(
-                    radius_proportion=dfc22_generators.UncertainRange(0.1, 0.2),
-                    activity_tuple_sequence=dfc22_generators.UncertainSet(
+                dfc22_parameters.UncertainCircle(
+                    radius_proportion=dfc22_parameters.UncertainRange(0.1, 0.2),
+                    activity_tuple_sequence=dfc22_parameters.UncertainSet(
                         [
                             [(0.25, False), (0.3, True), (0.8, False), (0.1, True)],
                             [(0.25, True), (0.8, False)],
                         ]
                     ),
                 ),
-                dfc22_generators.UncertainPentagon(
-                    angle_proportion_sequence=dfc22_generators.UncertainSequence(
+                dfc22_parameters.UncertainPentagon(
+                    angle_proportion_sequence=dfc22_parameters.UncertainSequence(
                         [
-                            dfc22_generators.UncertainRange(0.9, 1.3),
-                            dfc22_generators.UncertainRange(0.7, 1.5),
-                            dfc22_generators.UncertainRange(0.1, 1),
-                            dfc22_generators.UncertainRange(1, 2),
-                            dfc22_generators.UncertainRange(0.1, 1),
+                            dfc22_parameters.UncertainRange(0.9, 1.3),
+                            dfc22_parameters.UncertainRange(0.7, 1.5),
+                            dfc22_parameters.UncertainRange(0.1, 1),
+                            dfc22_parameters.UncertainRange(1, 2),
+                            dfc22_parameters.UncertainRange(0.1, 1),
                         ]
                     ),
-                    max_length=dfc22_generators.UncertainRange(2, 3),
-                    is_side_active_sequence=dfc22_generators.UncertainIsSideActiveSequence(
+                    max_length=dfc22_parameters.UncertainRange(2, 3),
+                    is_side_active_sequence=dfc22_parameters.UncertainIsSideActiveSequence(
                         [
                             True,
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                             True,
-                            dfc22_generators.UncertainSet([True, False]),
+                            dfc22_parameters.UncertainSet([True, False]),
                         ]
                     ),
-                    rotation_angle=dfc22_generators.UncertainRange(0, 20),
+                    rotation_angle=dfc22_parameters.UncertainRange(0, 20),
                 ),
             ],
         )
     )
+
+    from mutwo import dfc22_generators
+    from mutwo import zimmermann_generators
+
+    sentence_generator = dfc22_generators.SentenceGenerator(
+        dfc22_generators.make_word_tuple(
+            zimmermann_generators.JustIntonationPitchNonTerminal("9/7"),
+            2,
+            zimmermann_generators.JustIntonationPitchNonTerminal("9/7"),
+            3,
+        ),
+        dfc22_generators.make_word_tuple(
+            zimmermann_generators.JustIntonationPitchNonTerminal("7/8"),
+            5,
+            zimmermann_generators.JustIntonationPitchNonTerminal("7/8"),
+            4,
+        ),
+        dfc22_generators.make_word_tuple(
+            zimmermann_generators.JustIntonationPitchNonTerminal("7/8"),
+            1,
+            zimmermann_generators.JustIntonationPitchNonTerminal("7/8"),
+            2,
+        ),
+        dfc22_generators.make_word_tuple(
+            zimmermann_generators.JustIntonationPitchNonTerminal("8/9"),
+            3,
+            zimmermann_generators.JustIntonationPitchNonTerminal("8/9"),
+            4,
+        ),
+        dfc22_generators.make_word_tuple(
+            zimmermann_generators.JustIntonationPitchNonTerminal("8/7"),
+            2,
+            zimmermann_generators.JustIntonationPitchNonTerminal("8/7"),
+            1,
+        ),
+    )
+
+    sentence0 = next(sentence_generator)
+    for _ in range(10):
+        sentence0 += next(sentence_generator)
+
+    sentence_to_letter_tuple = dfc22_converters.SentenceToLetterTuple(
+        dfc22_converters.WordToLetterTuple(alphabet)
+    )
+    letter_tuple_to_image = dfc22_converters.LetterTupleToImage()
+    letter_tuple = sentence_to_letter_tuple(sentence0)
+    letter_tuple_to_image.convert(letter_tuple, "builds/letter.png")
+
     for letter in alphabet:
-        print(letter)
         letter.image.save(f"builds/alphabets/{letter.phoneme_list[0][0]}.png")
 
     from PIL import Image

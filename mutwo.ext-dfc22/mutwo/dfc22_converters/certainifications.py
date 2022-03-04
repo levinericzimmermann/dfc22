@@ -11,7 +11,6 @@ import numpy as np
 
 from mutwo import core_converters
 from mutwo import core_utilities
-from mutwo import dfc22_generators
 from mutwo import dfc22_parameters
 
 __all__ = (
@@ -26,7 +25,7 @@ __all__ = (
 )
 
 
-T = typing.TypeVar("T", bound=dfc22_generators.UncertainElement)
+T = typing.TypeVar("T", bound=dfc22_parameters.UncertainElement)
 
 
 class SpecifyUncertainElement(core_converters.abc.Converter):
@@ -44,9 +43,9 @@ class SpecifyUncertainRange(SpecifyUncertainElement):
     @abc.abstractmethod
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainRange,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainRange,
         n_specifications: int,
-    ) -> [dfc22_generators.UncertainRange, ...]:
+    ) -> [dfc22_parameters.UncertainRange, ...]:
         raise NotImplementedError
 
 
@@ -69,7 +68,7 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
 
     def _get_specification_and_seperator_length(
         self,
-        uncertain_range_to_specify: dfc22_generators.UncertainRange,
+        uncertain_range_to_specify: dfc22_parameters.UncertainRange,
         n_specifications: int,
     ) -> tuple[float, float]:
         n_seperators = n_specifications - 1
@@ -81,7 +80,7 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
 
     def _get_position_tuple(
         self,
-        uncertain_range_to_specify: dfc22_generators.UncertainRange,
+        uncertain_range_to_specify: dfc22_parameters.UncertainRange,
         n_specifications: int,
         specification_length: float,
         seperator_length: float,
@@ -97,9 +96,9 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
 
     def _convert_to_parts_with_overlaps(
         self,
-        uncertain_range_to_specify: dfc22_generators.UncertainRange,
+        uncertain_range_to_specify: dfc22_parameters.UncertainRange,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainRange, ...]:
+    ) -> tuple[dfc22_parameters.UncertainRange, ...]:
         (
             specification_length,
             seperator_length,
@@ -123,7 +122,7 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
             if nth_item != 0:
                 start -= seperator_length
 
-            specified_range = dfc22_generators.UncertainRange(
+            specified_range = dfc22_parameters.UncertainRange(
                 start,
                 end,
                 resolution_strategy=uncertain_range_to_specify.resolution_strategy,
@@ -135,9 +134,9 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
 
     def _convert_to_parts_with_gaps(
         self,
-        uncertain_range_to_specify: dfc22_generators.UncertainRange,
+        uncertain_range_to_specify: dfc22_parameters.UncertainRange,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainRange, ...]:
+    ) -> tuple[dfc22_parameters.UncertainRange, ...]:
         (
             specification_length,
             seperator_length,
@@ -152,7 +151,7 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
         )
         specified_range_list = []
         for start, end in zip(position_tuple[::2], position_tuple[1::2]):
-            specified_range = dfc22_generators.UncertainRange(
+            specified_range = dfc22_parameters.UncertainRange(
                 start,
                 end,
                 resolution_strategy=uncertain_range_to_specify.resolution_strategy,
@@ -162,9 +161,9 @@ class SymmetricalSpecifyUncertainRange(SpecifyUncertainRange):
 
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainRange,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainRange,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainRange, ...]:
+    ) -> tuple[dfc22_parameters.UncertainRange, ...]:
         assert n_specifications > 0
 
         if self._factor > 0:
@@ -209,16 +208,16 @@ class SpecifyUncertainSet(SpecifyUncertainElement):
 
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainSet,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainSet,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainSet, ...]:
+    ) -> tuple[dfc22_parameters.UncertainSet, ...]:
         assert n_specifications > 0
         item_tuple_cycle = self._get_item_tuple_cycle(
             tuple(uncertain_element_to_specifcy)
         )
         specified_set_list = []
         for _ in range(n_specifications):
-            uncertain_set = dfc22_generators.UncertainSet(
+            uncertain_set = dfc22_parameters.UncertainSet(
                 next(item_tuple_cycle),
                 resolution_strategy=uncertain_element_to_specifcy.resolution_strategy,
             )
@@ -234,9 +233,9 @@ class SpecifyUncertainSetAndSpecifyChildElements(SpecifyUncertainSet):
 
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainSet,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainSet,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainSet, ...]:
+    ) -> tuple[dfc22_parameters.UncertainSet, ...]:
         assert n_specifications > 0
         n_items = len(uncertain_element_to_specifcy)
         item_index_tuple_cycle = self._get_item_tuple_cycle(tuple(range(n_items)))
@@ -261,7 +260,7 @@ class SpecifyUncertainSetAndSpecifyChildElements(SpecifyUncertainSet):
             item_list = []
             for item_index in item_index_tuple:
                 item_list.append(next(specified_child_iterator[item_index]))
-            uncertain_set = dfc22_generators.UncertainSet(
+            uncertain_set = dfc22_parameters.UncertainSet(
                 tuple(item_list),
                 resolution_strategy=uncertain_element_to_specifcy.resolution_strategy,
             )
@@ -272,16 +271,16 @@ class SpecifyUncertainSetAndSpecifyChildElements(SpecifyUncertainSet):
 class SpecifyUncertainDict(SpecifyUncertainSet):
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainDict,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainDict,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainSet, ...]:
+    ) -> tuple[dfc22_parameters.UncertainSet, ...]:
         assert n_specifications > 0
         item_tuple_cycle = self._get_item_tuple_cycle(
             tuple(uncertain_element_to_specifcy.items())
         )
         specified_dict_list = []
         for _ in range(n_specifications):
-            uncertain_dict = dfc22_generators.UncertainDict(
+            uncertain_dict = dfc22_parameters.UncertainDict(
                 {item: likelihood for item, likelihood in next(item_tuple_cycle)},
                 resolution_strategy=uncertain_element_to_specifcy.resolution_strategy,
             )
@@ -292,9 +291,9 @@ class SpecifyUncertainDict(SpecifyUncertainSet):
 class SpecifyUncertainIsSideActiveSequence(SpecifyUncertainElement):
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainIsSideActiveSequence,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainIsSideActiveSequence,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainSet, ...]:
+    ) -> tuple[dfc22_parameters.UncertainSet, ...]:
         assert n_specifications > 0
         specification_list = []
         for nth_side, side in enumerate(uncertain_element_to_specifcy):
@@ -302,7 +301,7 @@ class SpecifyUncertainIsSideActiveSequence(SpecifyUncertainElement):
                 sides_before = uncertain_element_to_specifcy[:nth_side]
                 sides_after = uncertain_element_to_specifcy[nth_side + 1 :]
                 for state in side:
-                    specification = dfc22_generators.UncertainIsSideActiveSequence(
+                    specification = dfc22_parameters.UncertainIsSideActiveSequence(
                         sides_before + [state] + sides_after
                     )
                     if not all([state is False for state in specification]):
@@ -317,19 +316,19 @@ class SpecifyUncertainLetterElement(SpecifyUncertainElement):
     def __init__(
         self,
         atomic_type_to_specification_dict: typing.Dict[
-            typing.Type[dfc22_generators.UncertainElement], SpecifyUncertainElement
+            typing.Type[dfc22_parameters.UncertainElement], SpecifyUncertainElement
         ] = {
-            dfc22_generators.UncertainRange: SymmetricalSpecifyUncertainRange(1),
-            dfc22_generators.UncertainSet: SpecifyUncertainSet(),
-            dfc22_generators.UncertainDict: SpecifyUncertainDict(),
-            dfc22_generators.UncertainIsSideActiveSequence: SpecifyUncertainIsSideActiveSequence(),
+            dfc22_parameters.UncertainRange: SymmetricalSpecifyUncertainRange(1),
+            dfc22_parameters.UncertainSet: SpecifyUncertainSet(),
+            dfc22_parameters.UncertainDict: SpecifyUncertainDict(),
+            dfc22_parameters.UncertainIsSideActiveSequence: SpecifyUncertainIsSideActiveSequence(),
         },
     ):
         self._atomic_type_to_specification_dict = atomic_type_to_specification_dict
 
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainLetterElement,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainLetterElement,
         n_specifications: int,
     ):
         assert n_specifications > 0
@@ -375,9 +374,9 @@ class SpecifyUncertainLetter(SpecifyUncertainSetAndSpecifyChildElements):
 
     def convert(
         self,
-        uncertain_element_to_specifcy: dfc22_generators.UncertainLetter,
+        uncertain_element_to_specifcy: dfc22_parameters.UncertainLetter,
         n_specifications: int,
-    ) -> tuple[dfc22_generators.UncertainLetter, ...]:
+    ) -> tuple[dfc22_parameters.UncertainLetter, ...]:
         assert n_specifications > 0
         letter_element_list_per_specification = super().convert(
             uncertain_element_to_specifcy.argument_to_resolvable_object_dict[
@@ -392,7 +391,7 @@ class SpecifyUncertainLetter(SpecifyUncertainSetAndSpecifyChildElements):
         )
         specified_letter_list = []
         for letter_element_list in letter_element_list_per_specification:
-            specified_letter = dfc22_generators.UncertainLetter(
+            specified_letter = dfc22_parameters.UncertainLetter(
                 dfc22_parameters.LetterCanvas(
                     original_letter_canvas.x, original_letter_canvas.y
                 ),

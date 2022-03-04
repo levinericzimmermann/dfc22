@@ -1,4 +1,7 @@
-XSAMPA_VOCAL_TO_FORMANT_FREQUENCY_TUPLE_DICT = {
+from mutwo import isis_converters
+from mutwo import zimmermann_generators
+
+XSAMPA_VOWEL_TO_FORMANT_FREQUENCY_TUPLE_DICT = {
     # formant (xsampa notation): (f0, f1)
     "i": (240, 2400),
     "y": (235, 2100),
@@ -30,3 +33,36 @@ The frequencies of '@' are based on the paper
 'The phonetics of schwa vowels' written by
 Edward Flemming.
 """
+
+VOWEL_TUPLE = isis_converters.constants.XSAMPA.vowel_tuple
+
+CONSONANT_TUPLE = (
+    isis_converters.constants.XSAMPA.semi_vowel_tuple
+    + isis_converters.constants.XSAMPA.voiced_fricative_tuple
+    + isis_converters.constants.XSAMPA.unvoiced_fricative_tuple
+    + isis_converters.constants.XSAMPA.voiced_plosive_tuple
+    + isis_converters.constants.XSAMPA.unvoiced_plosive_tuple
+    + isis_converters.constants.XSAMPA.nasal_tuple
+    + isis_converters.constants.XSAMPA.other_tuple
+)
+
+DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS = (
+    zimmermann_generators.PitchBasedContextFreeGrammar.from_constraints(
+        prime_number_to_maximum_exponent_dict={3: 2, 7: 1, 11: 1},
+        maximum_cent_deviation=450,
+        minimal_barlow_harmonicity_non_terminal=0.05,
+        minimal_barlow_harmonicity_terminal=0.0385,
+    )
+)
+
+DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS = (
+    zimmermann_generators.PitchBasedContextFreeGrammar.from_constraints(
+        prime_number_to_maximum_exponent_dict={3: 3, 7: 1, 11: 1},
+        maximum_cent_deviation=450,
+        minimal_barlow_harmonicity_non_terminal=0.05,
+        minimal_barlow_harmonicity_terminal=0.037,
+    )
+)
+
+
+del isis_converters, zimmermann_generators
