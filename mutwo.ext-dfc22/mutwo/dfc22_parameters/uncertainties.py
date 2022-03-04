@@ -5,6 +5,7 @@ import typing
 
 import numpy as np
 import ranges
+import qahirah
 
 from mutwo import core_utilities
 from mutwo import dfc22_parameters
@@ -308,6 +309,7 @@ class UncertainPolygon(UncertainLetterElement):
         angle_proportion_sequence=None,
         length_proportion_sequence=None,
         rotation_angle=None,
+        line_cap=None,
         **kwargs,
     ):
         if not is_side_active_sequence:
@@ -330,6 +332,14 @@ class UncertainPolygon(UncertainLetterElement):
             )
         if not rotation_angle:
             rotation_angle = UncertainRange(0, 90)
+        if not line_cap:
+            line_cap = UncertainSet(
+                [
+                    qahirah.CAIRO.LINE_CAP_ROUND,
+                    qahirah.CAIRO.LINE_CAP_BUTT,
+                ]
+            )
+
         super().__init__(
             self.polygon_class.from_angles_and_lengths,
             is_side_active_sequence=is_side_active_sequence,
@@ -338,6 +348,7 @@ class UncertainPolygon(UncertainLetterElement):
             angle_proportion_sequence=angle_proportion_sequence,
             length_proportion_sequence=length_proportion_sequence,
             rotation_angle=rotation_angle,
+            line_cap=line_cap,
             **kwargs,
         )
 

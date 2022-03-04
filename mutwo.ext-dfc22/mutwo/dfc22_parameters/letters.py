@@ -126,6 +126,7 @@ class Polygon(LetterElement, geometer.Polygon):
         # The length of the longest line. A value from 0 - 1 where
         #  1 == shortest side of canvas
         max_length: float = 0.5,
+        line_cap: int = qahirah.CAIRO.LINE_CAP_ROUND,
         **kwargs,
     ):
         if is_side_active_sequence is None:
@@ -153,6 +154,7 @@ class Polygon(LetterElement, geometer.Polygon):
         LetterElement.__init__(self, *args, **kwargs)
         geometer.Polygon.__init__(self, *point_sequence)
 
+        self._line_cap = line_cap
         self._point_index_tuple = point_index_tuple
         self._is_side_active_tuple = is_side_active_tuple
         self._is_connection_a_line_tuple = is_connection_a_line_tuple
@@ -674,6 +676,7 @@ class Polygon(LetterElement, geometer.Polygon):
         )
 
         context = qahirah.Context.create(letter_canvas.surface)
+        context.line_cap = self._line_cap
         last_side_was_active = Polygon._draw_point_tuple_except_last_line(
             context,
             point_tuple,
