@@ -141,11 +141,21 @@ class Polygon(LetterElement, geometer.Polygon):
         ):
             assert len(data_sequence) == self.n_sides
 
+        (
+            point_sequence,
+            is_connection_a_line_tuple,
+            is_side_active_tuple,
+            point_index_tuple,
+        ) = Polygon._apply_round_corner_strength_tuple(
+            point_sequence, round_corner_strength_sequence, is_side_active_sequence
+        )
+
         LetterElement.__init__(self, *args, **kwargs)
         geometer.Polygon.__init__(self, *point_sequence)
 
-        self._is_side_active_tuple = tuple(is_side_active_sequence)
-        self._round_corner_strength_tuple = tuple(round_corner_strength_sequence)
+        self._point_index_tuple = point_index_tuple
+        self._is_side_active_tuple = is_side_active_tuple
+        self._is_connection_a_line_tuple = is_connection_a_line_tuple
         self._max_length = max_length
         self._length_proportion_tuple = tuple(
             geometer.dist(point0, point1)
@@ -154,16 +164,178 @@ class Polygon(LetterElement, geometer.Polygon):
             )
         )
 
-    def __str__(self) -> str:
+    @staticmethod
+    def _split_mixed_point_tuple(
+        mixed_point_tuple: tuple[geometer.Point, ...],
+        point_index_tuple: tuple[bool, ...],
+    ) -> tuple[tuple[geometer.Point, ...], tuple[geometer.Point, ...]]:
+        point_list, center_point_list = [], []
+        for point, point_type in zip(mixed_point_tuple, point_index_tuple):
+            if point_type:
+                point_list.append(point)
+            else:
+                center_point_list.append(point)
+        return tuple(point_list), tuple(center_point_list)
+
+    @staticmethod
+    def _get_curve_start_point(
+        point_to_be_replaced: geometer.Point,
+        neighbour_point: geometer.Point,
+        round_corner_strength: float,
+    ) -> geometer.Point:
+        distance = geometer.dist(point_to_be_replaced, neighbour_point)
+        distance_from_point_to_be_replaced = core_utilities.scale(
+            round_corner_strength, 0, 1, 0, distance * 0.5
+        )
+        x_main, y_main = Polygon._point_to_coordinate_tuple(point_to_be_replaced)
+        x_side, y_side = Polygon._point_to_coordinate_tuple(neighbour_point)
+        new_x, new_y = (
+            core_utilities.scale(
+                distance_from_point_to_be_replaced, 0, distance, main, side
+            )
+            for main, side in ((x_main, x_side), (y_main, y_side))
+        )
+        return geometer.Point(new_x, new_y)
+
+    @staticmethod
+    def _apply_round_corner_strength(
+        point0: geometer.Point,
+        point1: geometer.Point,
+        point2: geometer.Point,
+        round_corner_strength: float,
+        is_active0: bool,
+        is_active1: bool,
+        new_point_list: list[geometer.Point],
+        is_connection_a_line_list: list[bool],
+        is_side_active_list: list[bool],
+        point_index_list,
+    ):
+        if round_corner_strength == 0 or all((not is_active0, not is_active1)):
+            new_point_list.append(point1)
+            is_side_active_list.append(is_active1)
+            is_connection_a_line_list.append(True)
+            point_index_list.append(True)
+        else:
+            new_point_tuple = (
+                Polygon._get_curve_start_point(point1, point0, round_corner_strength),
+                point1,
+                Polygon._get_curve_start_point(point1, point2, round_corner_strength),
+            )
+            point_index_list.extend((True, False, True))
+            new_point_list.extend(new_point_tuple)
+            is_side_active_list.extend((True, is_active1))
+            is_connection_a_line_list.extend((False, True))
+
+    @staticmethod
+    def _apply_round_corner_strength_tuple(
+        point_sequence: typing.Sequence[geometer.Point],
+        round_corner_strength_sequence: typing.Sequence[float],
+        is_side_active_sequence: typing.Sequence[bool],
+    ) -> tuple[
+        tuple[geometer.Point, ...],
+        tuple[bool, ...],
+        tuple[bool, ...],
+        tuple[geometer.Point, ...],
+    ]:
+        """Apply round corner on point_sequence
+
+        :return: A tuple with three elements:
+            1. a tuple of new points
+            2. a tuple with bool (True = line_to, False = curve_to)
+            3. a tuple with bool (True = active, False = inactive)
+            4. a tuple with points for the center of a curve
+        """
+
+        new_point_list = []
+        is_connection_a_line_list = []
+        is_side_active_list = []
+        point_index_list = []
+
+        for (
+            # The point before the curve
+            point0,
+            # The point which may be replaced by a curve
+            point1,
+            # The point after the curve
+            point2,
+            # The round_corner_strength
+            round_corner_strength,
+            is_active0,
+            is_active1,
+        ) in zip(
+            point_sequence[-1:] + point_sequence[:-1],
+            point_sequence,
+            point_sequence[1:] + point_sequence[:1],
+            round_corner_strength_sequence,
+            is_side_active_sequence[-1:] + is_side_active_sequence[:-1],
+            is_side_active_sequence,
+        ):
+            Polygon._apply_round_corner_strength(
+                point0,
+                point1,
+                point2,
+                round_corner_strength,
+                is_active0,
+                is_active1,
+                new_point_list,
+                is_connection_a_line_list,
+                is_side_active_list,
+                point_index_list,
+            )
+
         return (
-            f"{type(self).__name__}(length_proportion_tuple = {self.length_proportion_tuple}, "
-            f"is_side_active_tuple = {self.is_side_active_tuple}, "
-            f"round_corner_strength_tuple = {self.round_corner_strength_tuple}, "
-            f"max_length = {self.max_length})"
+            tuple(new_point_list),
+            tuple(is_connection_a_line_list),
+            tuple(is_side_active_list),
+            tuple(point_index_list),
         )
 
-    def __repr__(self) -> str:
-        return str(self)
+    @staticmethod
+    def _find_next_point(
+        previous_segment: geometer.Segment, angle: float, length_proportion: float
+    ) -> geometer.Point:
+        # we get interior angle, but we need exterior angle
+        angle = -(180 - angle)
+        # we get degree, but we need radian
+        angle = math.radians(angle)
+        rotation_transformation = geometer.rotation(angle)
+        scale_factor = length_proportion / previous_segment.length
+        scale_transformation = geometer.scaling((scale_factor, scale_factor))
+        normalization_transformation = geometer.translation(
+            *[-n for n in previous_segment.vertices[0].normalized_array[:2]]
+        )
+        normalized_segment = normalization_transformation.apply(previous_segment)
+        movement_transformation = geometer.translation(
+            *previous_segment.vertices[1].normalized_array[:2]
+        )
+        new_segment = movement_transformation.apply(
+            scale_transformation.apply(
+                rotation_transformation.apply(normalized_segment)
+            )
+        )
+        # sanity check
+        assert new_segment.vertices[0] == previous_segment.vertices[-1]
+        return new_segment.vertices[-1]
+
+    @staticmethod
+    def _centralise_point_tuple(
+        point_tuple: tuple[geometer.Point, ...],
+        center: geometer.Point = geometer.Point(0, 0),
+    ) -> tuple[geometer.Point, ...]:
+        polygon = geometer.Polygon(*point_tuple)
+        centroid = polygon.centroid
+        centralise = geometer.translation(
+            -centroid.normalized_array[0] + center.normalized_array[0],
+            -centroid.normalized_array[1] + center.normalized_array[1],
+        )
+        return tuple(centralise.apply(polygon).vertices)
+
+    @staticmethod
+    def _rotate_point_tuple(
+        point_tuple: tuple[geometer.Point, ...], rotation_angle: float
+    ) -> tuple[geometer.Point, ...]:
+        rotation = geometer.rotation(math.radians(rotation_angle))
+        return tuple(rotation.apply(geometer.Polygon(*point_tuple)).vertices)
 
     @classmethod
     def from_angles_and_lengths(
@@ -235,53 +407,6 @@ class Polygon(LetterElement, geometer.Polygon):
         )
         return angle_tuple
 
-    @staticmethod
-    def _find_next_point(
-        previous_segment: geometer.Segment, angle: float, length_proportion: float
-    ) -> geometer.Point:
-        # we get interior angle, but we need exterior angle
-        angle = -(180 - angle)
-        # we get degree, but we need radian
-        angle = math.radians(angle)
-        rotation_transformation = geometer.rotation(angle)
-        scale_factor = length_proportion / previous_segment.length
-        scale_transformation = geometer.scaling((scale_factor, scale_factor))
-        normalization_transformation = geometer.translation(
-            *[-n for n in previous_segment.vertices[0].normalized_array[:2]]
-        )
-        normalized_segment = normalization_transformation.apply(previous_segment)
-        movement_transformation = geometer.translation(
-            *previous_segment.vertices[1].normalized_array[:2]
-        )
-        new_segment = movement_transformation.apply(
-            scale_transformation.apply(
-                rotation_transformation.apply(normalized_segment)
-            )
-        )
-        # sanity check
-        assert new_segment.vertices[0] == previous_segment.vertices[-1]
-        return new_segment.vertices[-1]
-
-    @staticmethod
-    def _centralise_point_tuple(
-        point_tuple: tuple[geometer.Point, ...],
-        center: geometer.Point = geometer.Point(0, 0),
-    ) -> tuple[geometer.Point, ...]:
-        polygon = geometer.Polygon(*point_tuple)
-        centroid = polygon.centroid
-        centralise = geometer.translation(
-            -centroid.normalized_array[0] + center.normalized_array[0],
-            -centroid.normalized_array[1] + center.normalized_array[1],
-        )
-        return tuple(centralise.apply(polygon).vertices)
-
-    @staticmethod
-    def _rotate_point_tuple(
-        point_tuple: tuple[geometer.Point, ...], rotation_angle: float
-    ) -> tuple[geometer.Point, ...]:
-        rotation = geometer.rotation(math.radians(rotation_angle))
-        return tuple(rotation.apply(geometer.Polygon(*point_tuple)).vertices)
-
     @classmethod
     def _angle_tuple_and_length_proportional_sequence_to_proportional_point_tuple(
         cls,
@@ -331,6 +456,17 @@ class Polygon(LetterElement, geometer.Polygon):
     def interior_angle_sum(cls) -> float:
         return (cls.n_sides - 2) * 180
 
+    def __str__(self) -> str:
+        return (
+            f"{type(self).__name__}(length_proportion_tuple = {self.length_proportion_tuple}, "
+            f"is_side_active_tuple = {self.is_side_active_tuple}, "
+            f"round_corner_strength_tuple = {self.round_corner_strength_tuple}, "
+            f"max_length = {self.max_length})"
+        )
+
+    def __repr__(self) -> str:
+        return str(self)
+
     @property
     def is_side_active_tuple(self) -> tuple[bool, ...]:
         return self._is_side_active_tuple
@@ -378,32 +514,68 @@ class Polygon(LetterElement, geometer.Polygon):
         return float(x), float(y)
 
     @staticmethod
-    def _draw_line(
+    def _draw_connection(
         context: qahirah.Context,
         point0: geometer.Point,
         point1: geometer.Point,
         last_side_was_active: bool,
+        draw_connection: typing.Callable[
+            [qahirah.Context, float, float, float, float], None
+        ],
     ):
         x0, y0 = Polygon._point_to_coordinate_tuple(point0)
         x1, y1 = Polygon._point_to_coordinate_tuple(point1)
         if not last_side_was_active:
             context.move_to((x0, y0))
-        context.line_to((x1, y1))
+        if not (x0 == x1 and y0 == y1):
+            draw_connection(context, x0, y0, x1, y1)
+
+    @staticmethod
+    def _draw_line(*args, **kwargs):
+        Polygon._draw_connection(
+            *args,
+            **kwargs,
+            draw_connection=lambda context, x0, y0, x1, y1: context.line_to((x1, y1)),
+        )
+
+    @staticmethod
+    def _get_draw_curve(center_point: geometer.Point):
+        x_center, y_center = Polygon._point_to_coordinate_tuple(center_point)
+
+        def draw_curve(*args, **kwargs):
+            Polygon._draw_connection(
+                *args,
+                **kwargs,
+                draw_connection=lambda context, x0, y0, x1, y1: context.curve_to(
+                    (x0, y0), (x_center, y_center), (x1, y1)
+                ),
+            )
+
+        return draw_curve
 
     @staticmethod
     def _draw_point_tuple_except_last_line(
         context: qahirah.Context,
         point_tuple: tuple[geometer.Point, ...],
         is_side_active_tuple: tuple[bool, ...],
+        is_connection_a_line_tuple: tuple[bool, ...],
+        center_point_tuple: tuple[geometer.Point, ...],
     ) -> bool:
         last_side_was_active = False
-        for point0, point1, is_side_active in zip(
+        center_point_iterator = iter(center_point_tuple)
+        for point0, point1, is_side_active, is_connection_a_line in zip(
             point_tuple,
             point_tuple[1:],
             is_side_active_tuple,
+            is_connection_a_line_tuple,
         ):
             if is_side_active:
-                Polygon._draw_line(context, point0, point1, last_side_was_active)
+                if is_connection_a_line:
+                    draw_function = Polygon._draw_line
+                else:
+                    center_point = next(center_point_iterator)
+                    draw_function = Polygon._get_draw_curve(center_point)
+                draw_function(context, point0, point1, last_side_was_active)
                 last_side_was_active = True
             else:
                 last_side_was_active = False
@@ -429,7 +601,9 @@ class Polygon(LetterElement, geometer.Polygon):
 
     def _sort_point_tuple_and_is_side_active_tuple(
         self, point_tuple: tuple[geometer.Point, ...]
-    ) -> tuple[tuple[geometer.Point, ...], tuple[bool, ...]]:
+    ) -> tuple[
+        tuple[geometer.Point, ...], tuple[bool, ...], tuple[bool, ...], tuple[bool, ...]
+    ]:
         """Round robin to avoid problematic construct.
 
         If is_side_active_tuple has the following structure:
@@ -445,23 +619,42 @@ class Polygon(LetterElement, geometer.Polygon):
         """
 
         is_side_active_tuple = self.is_side_active_tuple
+        is_connection_a_line_tuple = self._is_connection_a_line_tuple
+        point_index_tuple = self._point_index_tuple
         if not all(is_side_active_tuple):
             point_tuple_permutation = core_utilities.cyclic_permutations(point_tuple)
+            point_index_tuple_permutation = core_utilities.cyclic_permutations(
+                point_index_tuple
+            )
             is_side_active_tuple_permutation = core_utilities.cyclic_permutations(
                 is_side_active_tuple
             )
+            is_connection_a_line_tuple_permutation = core_utilities.cyclic_permutations(
+                is_connection_a_line_tuple
+            )
 
             point_tuple = next(point_tuple_permutation)
+            point_index_tuple = next(point_index_tuple_permutation)
+            is_connection_a_line_tuple = next(is_connection_a_line_tuple_permutation)
             is_side_active_tuple = next(is_side_active_tuple_permutation)
 
             while is_side_active_tuple[0] and is_side_active_tuple[-1]:
                 try:
                     point_tuple = next(point_tuple_permutation)
+                    point_index_tuple = next(point_index_tuple_permutation)
+                    is_connection_a_line_tuple = next(
+                        is_connection_a_line_tuple_permutation
+                    )
                     is_side_active_tuple = next(is_side_active_tuple_permutation)
                 except StopIteration:
                     break
 
-        return point_tuple, is_side_active_tuple
+        return (
+            point_tuple,
+            point_index_tuple,
+            is_side_active_tuple,
+            is_connection_a_line_tuple,
+        )
 
     def draw_on(self, letter_canvas: LetterCanvas):
         """Draws polygon element on letter canvas."""
@@ -469,15 +662,24 @@ class Polygon(LetterElement, geometer.Polygon):
         # Adjust polygon to letter canvas (scale and move)
         (
             point_tuple,
+            point_index_tuple,
             is_side_active_tuple,
+            is_connection_a_line_tuple,
         ) = self._sort_point_tuple_and_is_side_active_tuple(
             self._get_adjusted_point_tuple(letter_canvas)
         )
 
+        point_tuple, center_point_tuple = Polygon._split_mixed_point_tuple(
+            point_tuple, point_index_tuple
+        )
+
         context = qahirah.Context.create(letter_canvas.surface)
-        # TODO(apply round_corner_strength_tuple!)
         last_side_was_active = Polygon._draw_point_tuple_except_last_line(
-            context, point_tuple, is_side_active_tuple
+            context,
+            point_tuple,
+            is_side_active_tuple,
+            is_connection_a_line_tuple,
+            center_point_tuple,
         )
         Polygon._draw_last_line(
             context,
@@ -617,7 +819,7 @@ class Letter(dfc22_parameters.abc.Sign):
         new_image = Image.new(
             base_image.mode,
             tuple(size + margin_added for size in base_image.size),
-            color='white',
+            color="white",
         )
         new_image.paste(base_image, (margin_size, margin_size))
         self._image = new_image

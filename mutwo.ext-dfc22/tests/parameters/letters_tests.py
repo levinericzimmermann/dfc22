@@ -52,6 +52,72 @@ class SpecifiedPolygonTest(PolygonTest):
             geometer.Point(2, 0),
         )
 
+    def test_get_curve_start_point(self):
+        self._test_point(
+            dfc22_parameters.Polygon._get_curve_start_point(
+                geometer.Point(1, 0), geometer.Point(0, 0), 1
+            ),
+            geometer.Point(0.5, 0),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._get_curve_start_point(
+                geometer.Point(1, 0), geometer.Point(0, 0), 0.5
+            ),
+            geometer.Point(0.75, 0),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._get_curve_start_point(
+                geometer.Point(1, 0), geometer.Point(0, 0), 0
+            ),
+            geometer.Point(1, 0),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._get_curve_start_point(
+                geometer.Point(1, 1), geometer.Point(0, 0), 1
+            ),
+            geometer.Point(0.5, 0.5),
+        )
+        self._test_point(
+            dfc22_parameters.Polygon._get_curve_start_point(
+                geometer.Point(1, 1), geometer.Point(0, 1), 1
+            ),
+            geometer.Point(0.5, 1),
+        )
+
+    def test_apply_round_corner_strength_tuple(self):
+        point_sequence = (
+            geometer.Point(0, 0),
+            geometer.Point(1, 0),
+            geometer.Point(1, 1),
+        )
+        round_corner_strength_sequence = (0, 1, 0)
+        is_side_active_sequence = (True, True, True)
+
+        (
+            point_tuple,
+            is_connection_a_line_tuple,
+            is_side_active_tuple,
+            center_point_tuple,
+        ) = dfc22_parameters.Polygon._apply_round_corner_strength_tuple(
+            point_sequence, round_corner_strength_sequence, is_side_active_sequence
+        )
+
+        self._test_point(center_point_tuple[0], geometer.Point(1, 0))
+
+        for expected_point, real_point in zip(
+            (
+                geometer.Point(0, 0),
+                geometer.Point(0.5, 0),
+                geometer.Point(1, 0.5),
+                geometer.Point(1, 1),
+            ),
+            point_tuple,
+        ):
+            self._test_point(real_point, expected_point)
+
+        self.assertEqual(is_connection_a_line_tuple, (True, False, True, True))
+        self.assertEqual(is_side_active_tuple, (True, True, True, True))
+
 
 class TriangleTest(PolygonTest):
     def test_angle_proportion_sequence_to_angle_tuple(self):
