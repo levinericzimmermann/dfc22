@@ -88,7 +88,7 @@ class PhonemeTree(treelib.Tree):
         if node.data:
             return node.data
         else:
-            return self._get_specify_letter(self[node.bpointer])
+            return self._get_specify_letter(self[node.predecessor(self.identifier)])
 
     def create_alphabet(
         self,
@@ -97,7 +97,7 @@ class PhonemeTree(treelib.Tree):
         def get_letter_list(
             uncertain_letter: dfc22_parameters.UncertainLetter, node: treelib.Node
         ) -> list[dfc22_parameters.Letter]:
-            child_id_list = node.fpointer
+            child_id_list = node.successors(self.identifier)
             if child_id_list:
                 child_node_list = [self[child_id] for child_id in child_id_list]
                 uncertain_letter_tuple = self._get_specify_letter(node)(
