@@ -407,7 +407,11 @@ def main():
     )
     letter_tuple_to_image = dfc22_converters.LetterTupleToImage()
     letter_tuple = sentence_to_letter_tuple(sentence0)
-    letter_tuple_to_image.convert(letter_tuple, "builds/letter.png")
+
+    for n_letters in range(len(letter_tuple)):
+        letter_tuple_to_image.convert(
+            letter_tuple[: n_letters + 1], f"builds/letter-video/letter_{n_letters}.png"
+        )
 
     for letter in alphabet:
         letter.image.save(f"builds/alphabets/{letter.phoneme_list[0][0]}.png")

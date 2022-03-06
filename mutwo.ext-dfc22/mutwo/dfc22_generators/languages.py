@@ -17,7 +17,6 @@ def make_word_tuple(
     vowel_start: zimmermann_generators.JustIntonationPitchNonTerminal,
     vowel_length: int,
 ) -> tuple[dfc22_events.Word, ...]:
-
     if consonant_length:
         consonant_resolution = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS.resolve(
             consonant_start, consonant_length - 1
@@ -50,7 +49,9 @@ def make_word_tuple(
 
         consonant_iterator, vowel_iterator = iter(consonant_data), iter(vowel_data)
         length_tuple = (len(consonant_data), len(vowel_data))
-        euclidean_distribution = common_generators.euclidean(max(length_tuple), sum(length_tuple))
+        euclidean_distribution = common_generators.euclidean(
+            max(length_tuple), sum(length_tuple)
+        )
         # vowel is always == 1
         # consonant is always == 0
         if length_tuple[0] > length_tuple[1]:

@@ -51,17 +51,20 @@ DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS = (
         prime_number_to_maximum_exponent_dict={3: 2, 7: 1, 11: 1},
         maximum_cent_deviation=450,
         minimal_barlow_harmonicity_non_terminal=0.05,
-        minimal_barlow_harmonicity_terminal=0.0385,
+        minimal_barlow_harmonicity_terminal=0.04,
+        add_unison=True,
     )
 )
 
-DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS = (
-    zimmermann_generators.PitchBasedContextFreeGrammar.from_constraints(
-        prime_number_to_maximum_exponent_dict={3: 3, 7: 1, 11: 1},
-        maximum_cent_deviation=450,
-        minimal_barlow_harmonicity_non_terminal=0.05,
-        minimal_barlow_harmonicity_terminal=0.037,
-    )
+DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS = zimmermann_generators.PitchBasedContextFreeGrammar.from_constraints(
+    # prime_number_to_maximum_exponent_dict={3: 3, 7: 1, 11: 1},
+    prime_number_to_maximum_exponent_dict={3: 1, 5: 1, 7: 1},
+    maximum_cent_deviation=1200,
+    minimal_barlow_harmonicity_non_terminal=0.115,
+    # minimal_barlow_harmonicity_terminal=0.037,
+    minimal_barlow_harmonicity_terminal=0.083,
+    add_unison=True,
+    allowed_octave_sequence=(-1, 0, 1),
 )
 
 
