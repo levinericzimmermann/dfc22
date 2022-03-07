@@ -16,9 +16,11 @@ def make_word_tuple(
     consonant_length: int,
     vowel_start: zimmermann_generators.JustIntonationPitchNonTerminal,
     vowel_length: int,
+    pitch_based_context_free_grammar_for_consonants: zimmermann_generators.PitchBasedContextFreeGrammar = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
+    pitch_based_context_free_grammar_for_vowels: zimmermann_generators.PitchBasedContextFreeGrammar = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
 ) -> tuple[dfc22_events.Word, ...]:
     if consonant_length:
-        consonant_resolution = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS.resolve(
+        consonant_resolution = pitch_based_context_free_grammar_for_consonants.resolve(
             consonant_start, consonant_length - 1
         )
         consonant_leaf_tuple = tuple(
@@ -30,7 +32,7 @@ def make_word_tuple(
         consonant_leaf_tuple = tuple([[]])
 
     if vowel_length:
-        vowel_resolution = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS.resolve(
+        vowel_resolution = pitch_based_context_free_grammar_for_vowels.resolve(
             vowel_start, vowel_length - 1
         )
         vowel_leaf_tuple = tuple(

@@ -11,7 +11,15 @@ from mutwo import dfc22_parameters
 from mutwo import music_parameters
 
 
-__all__ = ("LanguageStructure", "PhonemeGroup", "Word", "Sentence", "Paragraph", "Page")
+__all__ = (
+    "LanguageStructure",
+    "NestedLanguageStructure",
+    "PhonemeGroup",
+    "Word",
+    "Sentence",
+    "Paragraph",
+    "Page",
+)
 
 
 def get_movement_sum(
@@ -24,17 +32,14 @@ def get_movement_sum(
     )[-1]
 
 
-class LanguageStructure(core_events.abc.Event):
+class LanguageStructure(object):
     def __init__(
         self,
-        *args,
         uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
             0.1, 0.2
         ),
-        **kwargs,
     ):
-        super().__init__(*args, **kwargs)
-        self.uncertain_rest_duration = uncertain_rest_duration
+        self._uncertain_rest_duration = uncertain_rest_duration
 
     @property
     @abc.abstractmethod

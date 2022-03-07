@@ -8,6 +8,7 @@ import numpy as np
 from mutwo import core_converters
 from mutwo import core_constants
 from mutwo import core_events
+from mutwo import dfc22_generators
 from mutwo import dfc22_events
 from mutwo import dfc22_parameters
 from mutwo import music_parameters
@@ -20,6 +21,7 @@ __all__ = (
     "NonTerminalToNotFiniteResolutionTuple",
     "NonTerminalPairToNotFinitePairResolutionTuple",
     "NonTerminalPairToPageTuple",
+    "PageCountAndWordCountToPageCatalog",
     "WordToSequentialEvent",
     "SentenceToSequentialEvent",
     "prepare_word_for_isis",
@@ -46,7 +48,15 @@ class NonTerminalPairToWordTuple(core_converters.abc.Converter):
         exponent_tuple_to_vowel_dict: dict[
             tuple[int, ...], dfc22_parameters.XSAMPAPhoneme
         ] = dfc22_events.constants.DEFAULT_EXPONENT_TUPLE_TO_VOWEL_DICT,
+        pitch_based_context_free_grammar_for_consonants: zimmermann_generators.PitchBasedContextFreeGrammar = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
+        pitch_based_context_free_grammar_for_vowels: zimmermann_generators.PitchBasedContextFreeGrammar = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
     ):
+        self._pitch_based_context_free_grammar_for_consonants = (
+            pitch_based_context_free_grammar_for_consonants
+        )
+        self._pitch_based_context_free_grammar_for_vowels = (
+            pitch_based_context_free_grammar_for_vowels
+        )
         self._exponent_tuple_to_consonant_dict = exponent_tuple_to_consonant_dict
         self._exponent_tuple_to_vowel_dict = exponent_tuple_to_vowel_dict
 
@@ -55,16 +65,26 @@ class NonTerminalPairToWordTuple(core_converters.abc.Converter):
         non_terminal_pair_to_convert: NonTerminalPair,
         word_count: int,
     ) -> tuple[dfc22_events.Word, ...]:
-        pass
+        # Dummy function, should later be replaced by something else
+        return dfc22_generators.make_word_tuple(
+            non_terminal_pair_to_convert.consonant,
+            3,
+            non_terminal_pair_to_convert.vowel,
+            3,
+            self._pitch_based_context_free_grammar_for_consonants,
+            self._pitch_based_context_free_grammar_for_vowels,
+        )[:word_count]
 
 
 NotFiniteResolution = tuple[zimmermann_generators.JustIntonationPitchNonTerminal, ...]
 FiniteResolution = tuple[zimmermann_generators.JustIntonationPitchTerminal, ...]
 NotFinitePairResolution = tuple[NonTerminalPair, ...]
+PageCatalog = dict[NonTerminalPair, tuple[dfc22_events.Page, ...]]
 
 
 class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
-    limit = 100
+    # TODO(find a suitable limit)
+    limit = 5
 
     def __init__(
         self,
@@ -79,11 +99,12 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
     ) -> list[NotFiniteResolution]:
         not_finite_resolution_list = []
         for limit in range(self.limit):
+            print(limit)
             resolution_tree = self._pitch_based_context_free_grammar.resolve(
                 non_terminal_to_convert, limit=limit
             )
             not_finite_resolution_list = []
-            for node in resolution_tree.nodes():
+            for node in resolution_tree.nodes.values():
                 finite_or_not_finite_resolution = node.data
                 if all(
                     map(
@@ -103,6 +124,27 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
                         )
             if len(not_finite_resolution_list) >= variation_count:
                 break
+        if variation_count:
+            try:
+                assert not_finite_resolution_list
+            except AssertionError:
+                rule_string = ""
+                for context_free_grammar_rule in self._pitch_based_context_free_grammar.context_free_grammar_rule_tuple:
+                    if context_free_grammar_rule.left_side == non_terminal_to_convert:
+                        rule_string += f"{context_free_grammar_rule}\n"
+                raise Exception(
+                    "There is no not finite resolution for the non terminal"
+                    f" '{non_terminal_to_convert}' in the grammar "
+                    f"{self._pitch_based_context_free_grammar}."
+                    "The related rules of the grammar are:\n\n"
+                    f"{rule_string}"
+                    "\nThe non terminals are:\n"
+                    f"{self._pitch_based_context_free_grammar.non_terminal_tuple}"
+                )
+        counter = 0
+        while len(not_finite_resolution_list) < variation_count:
+            not_finite_resolution_list.append(not_finite_resolution_list[counter])
+            counter += 1
         return not_finite_resolution_list
 
     @staticmethod
@@ -131,18 +173,18 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
         select_count: int,
     ) -> list[NotFiniteResolution]:
         non_terminal_counter: dict[
-            zimmermann_generators.JustIntonationPitchNonTerminal, int
+            tuple[int, ...], int
         ] = collections.Counter([])
         for choosen_not_finite_resolution in choosen_not_finite_resolution_list:
             for non_terminal in choosen_not_finite_resolution:
-                non_terminal_counter.update({non_terminal: 1})
+                non_terminal_counter.update({non_terminal.exponent_tuple: 1})
         counter_index_to_not_finite_resolution_list_dict = {}
         for (
             selectable_not_finite_resolution
         ) in not_finite_resolution_list_to_select_from:
             counter_index = sum(
                 [
-                    non_terminal_counter[non_terminal]
+                    non_terminal_counter[non_terminal.exponent_tuple]
                     for non_terminal in selectable_not_finite_resolution
                 ]
             )
@@ -220,7 +262,8 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
         not_finite_resolution_list = self._reduce_not_finite_resolution_list(
             self._get_not_finite_resolution_list(
                 non_terminal_to_convert, variation_count
-            )
+            ),
+            variation_count,
         )
         return tuple(not_finite_resolution_list)
 
@@ -383,7 +426,7 @@ class NonTerminalPairToPageTuple(core_converters.abc.Converter):
         ],
         child_container_class: typing.Type[dfc22_events.NestedLanguageStructure],
     ):
-        child_container = child_container_class()
+        child_container = child_container_class([])
         if non_terminal_pair in non_terminal_pair_to_not_finite_pair_resolution:
             child_not_finite_pair_resolution = (
                 non_terminal_pair_to_not_finite_pair_resolution[non_terminal_pair]
@@ -460,6 +503,104 @@ class NonTerminalPairToPageTuple(core_converters.abc.Converter):
             page_list.append(page)
 
         return tuple(page_list)
+
+
+class PageCountAndWordCountToPageCatalog(core_converters.abc.Converter):
+    def __init__(
+        self,
+        exponent_tuple_to_consonant_dict: dict[
+            tuple[int, ...], dfc22_parameters.XSAMPAPhoneme
+        ] = dfc22_events.constants.DEFAULT_EXPONENT_TUPLE_TO_CONSONANT_DICT,
+        exponent_tuple_to_vowel_dict: dict[
+            tuple[int, ...], dfc22_parameters.XSAMPAPhoneme
+        ] = dfc22_events.constants.DEFAULT_EXPONENT_TUPLE_TO_VOWEL_DICT,
+        pitch_based_context_free_grammar_for_consonants: zimmermann_generators.PitchBasedContextFreeGrammar = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
+        pitch_based_context_free_grammar_for_vowels: zimmermann_generators.PitchBasedContextFreeGrammar = dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
+    ):
+        # TODO(better decide which non terminals should belong together)
+        non_terminal_pair_list = []
+        for consonant, vowel in zip(
+            pitch_based_context_free_grammar_for_consonants.non_terminal_tuple,
+            pitch_based_context_free_grammar_for_vowels.non_terminal_tuple,
+        ):
+            non_terminal_pair = NonTerminalPair(consonant, vowel)
+            non_terminal_pair_list.append(non_terminal_pair)
+
+        all_non_terminal_pair_list = []
+        for consonant, vowel in itertools.product(
+            pitch_based_context_free_grammar_for_consonants.non_terminal_tuple,
+            pitch_based_context_free_grammar_for_vowels.non_terminal_tuple,
+        ):
+            non_terminal_pair = NonTerminalPair(consonant, vowel)
+            all_non_terminal_pair_list.append(non_terminal_pair)
+
+        self._non_terminal_pair_tuple = tuple(non_terminal_pair_list)
+        self._all_non_terminal_pair_tuple = tuple(all_non_terminal_pair_list)
+        self._non_terminal_pair_to_not_finite_pair_resolution_tuple = (
+            NonTerminalPairToNotFinitePairResolutionTuple(
+                NonTerminalToNotFiniteResolutionTuple(
+                    pitch_based_context_free_grammar_for_consonants
+                ),
+                NonTerminalToNotFiniteResolutionTuple(
+                    pitch_based_context_free_grammar_for_vowels
+                ),
+            )
+        )
+        self._non_terminal_pair_to_word_tuple = NonTerminalPairToWordTuple(
+            exponent_tuple_to_consonant_dict,
+            exponent_tuple_to_vowel_dict,
+            pitch_based_context_free_grammar_for_consonants,
+            pitch_based_context_free_grammar_for_vowels,
+        )
+
+        self._pitch_based_context_free_grammar_for_consonants = (
+            pitch_based_context_free_grammar_for_consonants
+        )
+        self._pitch_based_context_free_grammar_for_vowels = (
+            pitch_based_context_free_grammar_for_vowels
+        )
+        self._exponent_tuple_to_consonant_dict = exponent_tuple_to_consonant_dict
+        self._exponent_tuple_to_vowel_dict = exponent_tuple_to_vowel_dict
+
+    def _get_non_terminal_pair_to_page_tuple(
+        self, page_count: int, word_count: int
+    ) -> NonTerminalPairToPageTuple:
+        non_terminal_pair_to_not_finite_pair_resolution_tuple_dict = {}
+        for non_terminal_pair in self._non_terminal_pair_tuple:
+            print(non_terminal_pair)
+            not_finite_pair_resolution_tuple = (
+                self._non_terminal_pair_to_not_finite_pair_resolution_tuple.convert(
+                    non_terminal_pair, page_count
+                )
+            )
+        non_terminal_pair_to_word_tuple_dict = {}
+        for non_terminal_pair in self._all_non_terminal_pair_tuple:
+            non_terminal_pair_to_not_finite_pair_resolution_tuple_dict.update(
+                {non_terminal_pair: not_finite_pair_resolution_tuple}
+            )
+            word_tuple = self._non_terminal_pair_to_word_tuple.convert(
+                non_terminal_pair, word_count
+            )
+            non_terminal_pair_to_word_tuple_dict.update({non_terminal_pair: word_tuple})
+        return NonTerminalPairToPageTuple(
+            non_terminal_pair_to_not_finite_pair_resolution_tuple_dict,
+            non_terminal_pair_to_word_tuple_dict,
+        )
+
+    def convert(self, page_count: int, word_count: int) -> PageCatalog:
+        non_terminal_pair_to_page_tuple = self._get_non_terminal_pair_to_page_tuple(
+            page_count, word_count
+        )
+        non_terminal_pair_to_page_tuple_dict: PageCatalog = {}
+        for non_terminal_pair in self._non_terminal_pair_tuple:
+            non_terminal_pair_to_page_tuple_dict.update(
+                {
+                    non_terminal_pair: non_terminal_pair_to_page_tuple.convert(
+                        non_terminal_pair
+                    )
+                }
+            )
+        return non_terminal_pair_to_page_tuple_dict
 
 
 def find_duration(
@@ -567,7 +708,6 @@ class WordToSequentialEvent(core_converters.abc.Converter):
             vowel = "_"
 
             for phoneme in phoneme_group_to_convert.phoneme_list:
-                print(phoneme, phoneme.is_vowel)
                 if phoneme.is_vowel:
                     vowel = phoneme.phoneme
                 else:
