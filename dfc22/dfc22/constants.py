@@ -1,10 +1,12 @@
 import itertools
 
+from mutwo import core_utilities
 from mutwo import dfc22_converters
 from mutwo import dfc22_events
 from mutwo import dfc22_parameters
 
 import dfc22
+
 
 PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS = (
     dfc22_parameters.constants.DEFAULT_PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS
@@ -36,9 +38,8 @@ EXPONENT_TUPLE_TO_VOWEL_DICT = {
 NON_TERMINAL_COUNT = len(PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS.non_terminal_tuple)
 
 try:
-    assert (
-        NON_TERMINAL_COUNT
-        == len(PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS.non_terminal_tuple)
+    assert NON_TERMINAL_COUNT == len(
+        PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS.non_terminal_tuple
     )
 except AssertionError:
     raise Exception(
@@ -56,12 +57,19 @@ UNISONO_COUNT = sum(
 
 PAGE_COUNT = int(UNISONO_COUNT // NON_TERMINAL_COUNT)
 
-NON_TERMINAL_PAIR_TO_PAGE_TUPLE = dfc22_converters.PageCountAndWordCountToPageCatalog(
-    EXPONENT_TUPLE_TO_CONSONANT_DICT,
-    EXPONENT_TUPLE_TO_VOWEL_DICT,
-    PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
-    PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
-).convert(PAGE_COUNT, dfc22.config.WORD_COUNT)
+NON_TERMINAL_PAIR_TO_PAGE_TUPLE = core_utilities.compute_lazy(
+    "etc/.pages.pickled",
+    force_to_compute=dfc22.config.FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_TO_PAGE_TUPLE,
+)(
+    lambda _: dfc22_converters.PageCountAndWordCountToPageCatalog(
+        EXPONENT_TUPLE_TO_CONSONANT_DICT,
+        EXPONENT_TUPLE_TO_VOWEL_DICT,
+        PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
+        PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
+    ).convert(PAGE_COUNT, dfc22.config.WORD_COUNT)
+)(
+    dfc22.config.MAX_PAPER_GENERATION_DEPTH
+)
 
 # Cleanup
 del dfc22, dfc22_events, dfc22_parameters, itertools

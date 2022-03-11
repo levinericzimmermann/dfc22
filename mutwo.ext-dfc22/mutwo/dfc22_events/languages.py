@@ -73,6 +73,11 @@ class LanguageStructure(object):
 
         raise NotImplementedError
 
+    @property
+    @abc.abstractmethod
+    def as_xsampa_text(self) -> str:
+        raise NotImplementedError
+
 
 class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
     def __init__(
@@ -176,6 +181,10 @@ class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
             ]
         )
 
+    @property
+    def as_xsampa_text(self) -> str:
+        return "".join([phoneme.phoneme for phoneme in self.phoneme_list])
+
 
 T = typing.TypeVar("T", bound=LanguageStructure)
 
@@ -183,6 +192,8 @@ T = typing.TypeVar("T", bound=LanguageStructure)
 class NestedLanguageStructure(
     core_events.SequentialEvent, typing.Generic[T], LanguageStructure
 ):
+    xsampa_text_separator = " "
+
     def __init__(
         self,
         *args,
@@ -213,8 +224,14 @@ class NestedLanguageStructure(
     def time_movement(self) -> music_parameters.JustIntonationPitch:
         return get_movement_sum(self.get_parameter("time_movement"))
 
+    @property
+    def as_xsampa_text(self) -> str:
+        return self.xsampa_text_separator.join([event.as_xsampa_text for event in self])
+
 
 class Word(NestedLanguageStructure[PhonemeGroup]):
+    xsampa_text_separator = ""
+
     def __init__(
         self,
         *args,
@@ -241,6 +258,8 @@ class Word(NestedLanguageStructure[PhonemeGroup]):
 
 
 class Sentence(NestedLanguageStructure[Word]):
+    xsampa_text_separator = " "
+
     def __init__(
         self,
         *args,
@@ -255,6 +274,8 @@ class Sentence(NestedLanguageStructure[Word]):
 
 
 class Paragraph(NestedLanguageStructure[Sentence]):
+    xsampa_text_separator = "! "
+
     def __init__(
         self,
         *args,
@@ -267,8 +288,17 @@ class Paragraph(NestedLanguageStructure[Sentence]):
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )
 
+    @property
+    def as_xsampa_text(self) -> str:
+        return (
+            self.xsampa_text_separator.join([event.as_xsampa_text for event in self])
+            + self.xsampa_text_separator
+        )
+
 
 class Page(NestedLanguageStructure[Paragraph]):
+    xsampa_text_separator = "\n\n"
+
     def __init__(
         self,
         *args,
@@ -280,3 +310,9 @@ class Page(NestedLanguageStructure[Paragraph]):
         super().__init__(
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )
+
+
+    @property
+    def as_xsampa_text(self) -> str:
+        xsampa_text = super().as_xsampa_text
+        return "".join(['\t' + line + '\n' for line in xsampa_text.split('\n')])

@@ -8,6 +8,7 @@ import numpy as np
 from mutwo import core_converters
 from mutwo import core_constants
 from mutwo import core_events
+from mutwo import dfc22_converters
 from mutwo import dfc22_generators
 from mutwo import dfc22_events
 from mutwo import dfc22_parameters
@@ -83,13 +84,15 @@ PageCatalog = dict[NonTerminalPair, tuple[dfc22_events.Page, ...]]
 
 
 class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
-    # TODO(find a suitable limit)
-    limit = 5
-
     def __init__(
         self,
         pitch_based_context_free_grammar: zimmermann_generators.PitchBasedContextFreeGrammar,
+        # The max search depth
+        limit: typing.Optional[int] = None,
     ):
+        if limit is None:
+            limit = dfc22_converters.constants.DEFAULT_LIMIT
+        self.limit = limit
         self._pitch_based_context_free_grammar = pitch_based_context_free_grammar
 
     def _get_not_finite_resolution_list(
@@ -129,7 +132,11 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
                 assert not_finite_resolution_list
             except AssertionError:
                 rule_string = ""
-                for context_free_grammar_rule in self._pitch_based_context_free_grammar.context_free_grammar_rule_tuple:
+                for (
+                    context_free_grammar_rule
+                ) in (
+                    self._pitch_based_context_free_grammar.context_free_grammar_rule_tuple
+                ):
                     if context_free_grammar_rule.left_side == non_terminal_to_convert:
                         rule_string += f"{context_free_grammar_rule}\n"
                 raise Exception(
@@ -172,9 +179,7 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
         choosen_not_finite_resolution_list: list[NotFiniteResolution],
         select_count: int,
     ) -> list[NotFiniteResolution]:
-        non_terminal_counter: dict[
-            tuple[int, ...], int
-        ] = collections.Counter([])
+        non_terminal_counter: dict[tuple[int, ...], int] = collections.Counter([])
         for choosen_not_finite_resolution in choosen_not_finite_resolution_list:
             for non_terminal in choosen_not_finite_resolution:
                 non_terminal_counter.update({non_terminal.exponent_tuple: 1})

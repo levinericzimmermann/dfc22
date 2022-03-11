@@ -21,11 +21,10 @@ setuptools.setup(
     ],
     setup_requires=[],
     install_requires=[
-        # "cython==0.29.28",
-        "mutwo.ext-core>=0.55.0, <0.56.0",
-        "mutwo.ext-music>=0.7.2, <1.0.0",
+        "mutwo.ext-core>=0.57.0, <0.58.0",
+        "mutwo.ext-music>=0.8.0, <1.0.0",
         "mutwo.ext-mbrola>=0.2.0, <1.0.0",
-        "mutwo.ext-zimmermann>=0.3.1, <0.4.0",
+        "mutwo.ext-zimmermann>=0.3.3, <0.4.0",
         "mutwo.ext-csound>=0.3.0, <0.4.0",
         "mutwo.ext-isis>=0.5.0, <0.6.0",
         # To make ascii art like images
@@ -35,6 +34,8 @@ setuptools.setup(
         # Utility to draw vector based letters
         # (abstraction of geometrical figures).
         "geometer==0.3.2",
+        # For caching variables (mutwo compute lazy function)
+        "cloudpickle==2.0.0",
     ],
     extras_require=extras_require,
     python_requires=">=3.9, <4",
