@@ -166,21 +166,37 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
     ) -> dict[int, list[NotFiniteResolution]]:
         size_to_not_finite_resolution_list_dict = {}
         for not_finite_resolution in not_finite_resolution_list:
-            # print(not_finite_resolution)
+            not_finite_resolution_count = len(not_finite_resolution)
             if (
-                not_finite_resolution_count := len(not_finite_resolution)
-                > self._minimal_resolution_length
+                not_finite_resolution_count
+                not in size_to_not_finite_resolution_list_dict
             ):
-                if (
-                    not_finite_resolution_count
-                    not in size_to_not_finite_resolution_list_dict
-                ):
-                    size_to_not_finite_resolution_list_dict.update(
-                        {not_finite_resolution_count: []}
-                    )
-                size_to_not_finite_resolution_list_dict[
-                    not_finite_resolution_count
-                ].append(not_finite_resolution)
+                size_to_not_finite_resolution_list_dict.update(
+                    {not_finite_resolution_count: []}
+                )
+            size_to_not_finite_resolution_list_dict[not_finite_resolution_count].append(
+                not_finite_resolution
+            )
+        if any(
+            [
+                size > self._minimal_resolution_length
+                for size in size_to_not_finite_resolution_list_dict
+            ]
+        ):
+            size_to_not_finite_resolution_list_dict = {
+                size: not_finite_resolution_list
+                for size, not_finite_resolution_list in size_to_not_finite_resolution_list_dict.items()
+                if size >= self._minimal_resolution_length
+            }
+
+        else:
+            max_size = max(size_to_not_finite_resolution_list_dict.keys())
+            size_to_not_finite_resolution_list_dict = {
+                size: not_finite_resolution_list
+                for size, not_finite_resolution_list in size_to_not_finite_resolution_list_dict.items()
+                if size == max_size
+            }
+
         return size_to_not_finite_resolution_list_dict
 
     @staticmethod
@@ -585,7 +601,12 @@ class PageCountAndWordCountToPageCatalog(core_converters.abc.Converter):
         non_terminal_pair_to_not_finite_pair_resolution_tuple_dict = {}
         for non_terminal_pair in progressbar.progressbar(
             self._non_terminal_pair_tuple,
-            prefix="dfc22_converters.languages: find not_finite_pair_resolution_tuple",
+            prefix=(
+                "dfc22_converters.languages: Find not_finite_pair_resolution_tuple."
+                f" Limit: {dfc22_converters.configurations.DEFAULT_LIMIT}, "
+                "Minimal Length: "
+                f"{dfc22_converters.configurations.DEFAULT_MINIMAL_RESOLUTION_LENGHT}"
+            ),
         ):
             not_finite_pair_resolution_tuple = (
                 self._non_terminal_pair_to_not_finite_pair_resolution_tuple.convert(

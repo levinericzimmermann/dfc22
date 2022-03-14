@@ -3,10 +3,10 @@ from mutwo import dfc22_converters
 READER_COUNT = SPEAKER_COUNT = 6
 """How many channels / loudspeakers / readers"""
 
-WORD_COUNT = 3
+WORD_COUNT = 2
 """How many words for the same Pitch/Rhythm Movement"""
 
-dfc22_converters.configurations.DEFAULT_LIMIT = MAX_PAPER_GENERATION_DEPTH = 7
+dfc22_converters.configurations.DEFAULT_LIMIT = MAX_PAPER_GENERATION_DEPTH = 10
 """Higher = better quality (less repetitions) = longer calculation times"""
 
 dfc22_converters.configurations.DEFAULT_MINIMAL_RESOLUTION_LENGHT = MINIMAL_LANGUAGE_STRUCTURE_LENGTH = 3

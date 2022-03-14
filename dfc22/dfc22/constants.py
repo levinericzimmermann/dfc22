@@ -61,23 +61,14 @@ NON_TERMINAL_PAIR_TO_PAGE_TUPLE = core_utilities.compute_lazy(
     "etc/.pages.pickled",
     force_to_compute=dfc22.configurations.FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_TO_PAGE_TUPLE,
 )(
-    lambda _, __, exponent_tuple_to_consonant_dict, exponent_tuple_to_vowel_dict, pitch_based_context_free_grammar_for_consonants, pitch_based_context_free_grammar_for_vowels, page_count, word_count: dfc22_converters.PageCountAndWordCountToPageCatalog(
-        exponent_tuple_to_consonant_dict,
-        exponent_tuple_to_vowel_dict,
-        pitch_based_context_free_grammar_for_consonants,
-        pitch_based_context_free_grammar_for_vowels,
-    ).convert(
-        page_count, word_count
-    )
+    lambda _, __: dfc22_converters.PageCountAndWordCountToPageCatalog(
+        EXPONENT_TUPLE_TO_CONSONANT_DICT,
+        EXPONENT_TUPLE_TO_VOWEL_DICT,
+        PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
+        PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
+    ).convert(PAGE_COUNT, dfc22.configurations.WORD_COUNT)
 )(
-    dfc22.configurations.MAX_PAPER_GENERATION_DEPTH,
-    dfc22.configurations.MINIMAL_LANGUAGE_STRUCTURE_LENGTH,
-    EXPONENT_TUPLE_TO_CONSONANT_DICT,
-    EXPONENT_TUPLE_TO_VOWEL_DICT,
-    PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_CONSONANTS,
-    PITCH_BASED_CONTEXT_FREE_GRAMMAR_FOR_VOWELS,
-    PAGE_COUNT,
-    dfc22.configurations.WORD_COUNT,
+    dfc22.configurations.MAX_PAPER_GENERATION_DEPTH, dfc22.configurations.MINIMAL_LANGUAGE_STRUCTURE_LENGTH
 )
 
 # Cleanup
