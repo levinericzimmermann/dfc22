@@ -1,3 +1,3 @@
-from . import config
+from . import configurations
 from . import constants
 from . import trees

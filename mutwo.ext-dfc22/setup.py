@@ -36,6 +36,7 @@ setuptools.setup(
         "geometer==0.3.2",
         # For caching variables (mutwo compute lazy function)
         "cloudpickle==2.0.0",
+        "progressbar2==4.0.0",
     ],
     extras_require=extras_require,
     python_requires=">=3.9, <4",

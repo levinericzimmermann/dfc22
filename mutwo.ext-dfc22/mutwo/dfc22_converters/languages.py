@@ -4,6 +4,7 @@ import itertools
 import typing
 
 import numpy as np
+import progressbar
 
 from mutwo import core_converters
 from mutwo import core_constants
@@ -87,13 +88,19 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
     def __init__(
         self,
         pitch_based_context_free_grammar: zimmermann_generators.PitchBasedContextFreeGrammar,
+        minimal_resolution_length: typing.Optional[int] = None,
         # The max search depth
         limit: typing.Optional[int] = None,
     ):
         if limit is None:
-            limit = dfc22_converters.constants.DEFAULT_LIMIT
+            limit = dfc22_converters.configurations.DEFAULT_LIMIT
+        if minimal_resolution_length is None:
+            minimal_resolution_length = (
+                dfc22_converters.configurations.DEFAULT_MINIMAL_RESOLUTION_LENGHT
+            )
         self.limit = limit
         self._pitch_based_context_free_grammar = pitch_based_context_free_grammar
+        self._minimal_resolution_length = minimal_resolution_length
 
     def _get_not_finite_resolution_list(
         self,
@@ -102,7 +109,6 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
     ) -> list[NotFiniteResolution]:
         not_finite_resolution_list = []
         for limit in range(self.limit):
-            print(limit)
             resolution_tree = self._pitch_based_context_free_grammar.resolve(
                 non_terminal_to_convert, limit=limit
             )
@@ -154,23 +160,27 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
             counter += 1
         return not_finite_resolution_list
 
-    @staticmethod
     def _get_size_to_not_finite_resolution_list_dict(
+        self,
         not_finite_resolution_list: list[NotFiniteResolution],
     ) -> dict[int, list[NotFiniteResolution]]:
         size_to_not_finite_resolution_list_dict = {}
         for not_finite_resolution in not_finite_resolution_list:
-            not_finite_resolution_count = len(not_finite_resolution)
+            # print(not_finite_resolution)
             if (
-                not_finite_resolution_count
-                not in size_to_not_finite_resolution_list_dict
+                not_finite_resolution_count := len(not_finite_resolution)
+                > self._minimal_resolution_length
             ):
-                size_to_not_finite_resolution_list_dict.update(
-                    {not_finite_resolution_count: []}
-                )
-            size_to_not_finite_resolution_list_dict[not_finite_resolution_count].append(
-                not_finite_resolution
-            )
+                if (
+                    not_finite_resolution_count
+                    not in size_to_not_finite_resolution_list_dict
+                ):
+                    size_to_not_finite_resolution_list_dict.update(
+                        {not_finite_resolution_count: []}
+                    )
+                size_to_not_finite_resolution_list_dict[
+                    not_finite_resolution_count
+                ].append(not_finite_resolution)
         return size_to_not_finite_resolution_list_dict
 
     @staticmethod
@@ -217,13 +227,15 @@ class NonTerminalToNotFiniteResolutionTuple(core_converters.abc.Converter):
                     break
         return selected_not_finite_resolution_list
 
-    @staticmethod
     def _reduce_not_finite_resolution_list(
+        self,
         not_finite_resolution_list: list[NotFiniteResolution],
         variation_count: int,
     ) -> list[NotFiniteResolution]:
-        size_to_not_finite_resolution_list_dict = NonTerminalToNotFiniteResolutionTuple._get_size_to_not_finite_resolution_list_dict(
-            not_finite_resolution_list
+        size_to_not_finite_resolution_list_dict = (
+            self._get_size_to_not_finite_resolution_list_dict(
+                not_finite_resolution_list
+            )
         )
         filtered_not_finite_resolution_list = []
         for size in sorted(size_to_not_finite_resolution_list_dict.keys()):
@@ -571,8 +583,10 @@ class PageCountAndWordCountToPageCatalog(core_converters.abc.Converter):
         self, page_count: int, word_count: int
     ) -> NonTerminalPairToPageTuple:
         non_terminal_pair_to_not_finite_pair_resolution_tuple_dict = {}
-        for non_terminal_pair in self._non_terminal_pair_tuple:
-            print(non_terminal_pair)
+        for non_terminal_pair in progressbar.progressbar(
+            self._non_terminal_pair_tuple,
+            prefix="dfc22_converters.languages: find not_finite_pair_resolution_tuple",
+        ):
             not_finite_pair_resolution_tuple = (
                 self._non_terminal_pair_to_not_finite_pair_resolution_tuple.convert(
                     non_terminal_pair, page_count
@@ -597,7 +611,10 @@ class PageCountAndWordCountToPageCatalog(core_converters.abc.Converter):
             page_count, word_count
         )
         non_terminal_pair_to_page_tuple_dict: PageCatalog = {}
-        for non_terminal_pair in self._non_terminal_pair_tuple:
+        for non_terminal_pair in progressbar.progressbar(
+            self._non_terminal_pair_tuple,
+            prefix="dfc22_converters.languages: Convert non terminal pair",
+        ):
             non_terminal_pair_to_page_tuple_dict.update(
                 {
                     non_terminal_pair: non_terminal_pair_to_page_tuple.convert(

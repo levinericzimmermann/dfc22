@@ -1,4 +1,4 @@
-from . import constants
+from . import configurations
 
 from .certainifications import *
 from .images import *
