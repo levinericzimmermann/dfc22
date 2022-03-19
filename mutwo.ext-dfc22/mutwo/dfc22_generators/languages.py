@@ -40,6 +40,8 @@ def make_word_tuple(
             for leaf in vowel_resolution.leaves()
             if len(leaf.data) == vowel_length
         )
+        if not vowel_leaf_tuple:
+            vowel_leaf_tuple = tuple(leaf.data for leaf in vowel_resolution.leaves())
     else:
         vowel_leaf_tuple = tuple([[]])
 

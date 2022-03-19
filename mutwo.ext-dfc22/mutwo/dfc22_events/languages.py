@@ -78,6 +78,12 @@ class LanguageStructure(object):
     def as_xsampa_text(self) -> str:
         raise NotImplementedError
 
+    @property
+    def non_terminal_pair(self) -> dfc22_parameters.NonTerminalPair:
+        return dfc22_parameters.NonTerminalPair(
+            consonant=self.time_movement, vowel=self.pitch_movement
+        )
+
 
 class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
     def __init__(
@@ -218,11 +224,11 @@ class NestedLanguageStructure(
 
     @property
     def pitch_movement(self) -> music_parameters.JustIntonationPitch:
-        return get_movement_sum(self.get_parameter("pitch_movement"))
+        return get_movement_sum([event.pitch_movement for event in self])
 
     @property
     def time_movement(self) -> music_parameters.JustIntonationPitch:
-        return get_movement_sum(self.get_parameter("time_movement"))
+        return get_movement_sum([event.time_movement for event in self])
 
     @property
     def as_xsampa_text(self) -> str:
@@ -311,8 +317,11 @@ class Page(NestedLanguageStructure[Paragraph]):
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )
 
-
     @property
     def as_xsampa_text(self) -> str:
         xsampa_text = super().as_xsampa_text
-        return "".join(['\t' + line + '\n' for line in xsampa_text.split('\n')])
+        return "".join(["\t" + line + "\n" for line in xsampa_text.split("\n")])
+
+    def __hash__(self) -> int:
+        # UNSAFE HASH!
+        return hash(self.as_xsampa_text)

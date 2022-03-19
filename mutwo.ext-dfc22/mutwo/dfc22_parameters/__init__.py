@@ -7,3 +7,4 @@ from .signs import *
 from .letters import *
 from .alphabets import *
 from .uncertainties import *
+from .languages import *

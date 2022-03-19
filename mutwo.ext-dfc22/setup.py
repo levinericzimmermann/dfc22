@@ -24,9 +24,10 @@ setuptools.setup(
         "mutwo.ext-core>=0.57.0, <0.58.0",
         "mutwo.ext-music>=0.8.0, <1.0.0",
         "mutwo.ext-mbrola>=0.2.0, <1.0.0",
-        "mutwo.ext-zimmermann>=0.3.3, <0.4.0",
+        "mutwo.ext-zimmermann>=0.3.5, <0.4.0",
         "mutwo.ext-csound>=0.3.0, <0.4.0",
         "mutwo.ext-isis>=0.5.0, <0.6.0",
+        "mutwo.ext-common-generators>=0.8.1, <0.9.0",
         # To make ascii art like images
         "pillow==8.1.2",
         # To draw vector based letters
