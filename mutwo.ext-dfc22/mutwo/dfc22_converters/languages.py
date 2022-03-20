@@ -28,6 +28,7 @@ __all__ = (
     "WordToSequentialEvent",
     "SentenceToSequentialEvent",
     "prepare_word_for_isis",
+    "NestedLanguageStructureToSequentialEvent",
 )
 
 
@@ -744,8 +745,8 @@ def find_duration(
     random: np.random.Generator,
 ) -> core_constants.DurationType:
     pulse_list = []
-    ratio = initial_pulse.ratio
-    current_pulse = ratio
+    ratio = float(initial_pulse.ratio)
+    current_pulse = float(ratio)
     while True:
         if current_pulse > uncertain_duration.end:
             break
@@ -756,7 +757,8 @@ def find_duration(
     if not pulse_list:
         pulse_list = [ratio]
 
-    return float(random.choice(pulse_list, 1)[0])
+    # return float(random.choice(pulse_list, 1)[0])
+    return float(max(pulse_list))
 
 
 def make_rest(
@@ -975,3 +977,80 @@ class SentenceToSequentialEvent(core_converters.abc.Converter):
                 )
             )
         return sequential_event, initial_pitch, initial_pulse
+
+
+class NestedLanguageStructureToSequentialEvent(core_converters.abc.Converter):
+    def __init__(
+        self, word_to_sequential_event: WordToSequentialEvent = WordToSequentialEvent()
+    ):
+        self._word_to_sequential_event = word_to_sequential_event
+
+    def _append_word_to_sequential_event(
+        self,
+        sequential_event_to_append_to: core_events.SequentialEvent,
+        word: dfc22_events.Word,
+        initial_pitch: typing.Optional[music_parameters.JustIntonationPitch] = None,
+        initial_pulse: typing.Optional[music_parameters.JustIntonationPitch] = None,
+    ):
+        word, *_ = self._word_to_sequential_event.convert(
+            word, initial_pitch, initial_pulse
+        )
+        sequential_event_to_append_to.extend(word)
+
+    def _convert(
+        self,
+        sequential_event_to_append_to: core_events.SequentialEvent,
+        nested_language_structure: dfc22_events.NestedLanguageStructure,
+        initial_pitch: typing.Optional[music_parameters.JustIntonationPitch] = None,
+        initial_pulse: typing.Optional[music_parameters.JustIntonationPitch] = None,
+    ):
+        if initial_pitch is None or initial_pulse is None:
+            initial_non_terminal_pair = (
+                nested_language_structure.initial_non_terminal_pair
+            )
+        if initial_pitch is None:
+            initial_pitch = initial_non_terminal_pair.vowel
+        if initial_pulse is None:
+            initial_pulse = initial_non_terminal_pair.consonant
+
+        if isinstance(nested_language_structure, dfc22_events.Word):
+            self._append_word_to_sequential_event(
+                sequential_event_to_append_to,
+                nested_language_structure,
+                initial_pitch,
+                initial_pulse,
+            )
+
+        elif isinstance(
+            nested_language_structure, dfc22_events.NestedLanguageStructure
+        ):
+            for language_structure in nested_language_structure:
+                self._convert(
+                    sequential_event_to_append_to,
+                    language_structure,
+                    initial_pitch,
+                    initial_pulse,
+                )
+                initial_pitch += language_structure.pitch_movement
+                initial_pulse += language_structure.time_movement
+
+        else:
+            raise NotImplementedError(
+                (
+                    f"Found unexpected object '{nested_language_structure}'"
+                    f"of type '{type(nested_language_structure)}'!"
+                )
+            )
+
+    def convert(
+        self,
+        nested_language_structure: dfc22_events.NestedLanguageStructure,
+        initial_pitch: typing.Optional[music_parameters.JustIntonationPitch] = None,
+        initial_pulse: typing.Optional[music_parameters.JustIntonationPitch] = None,
+    ) -> core_events.SequentialEvent:
+
+        sequential_event = core_events.SequentialEvent([])
+        self._convert(
+            sequential_event, nested_language_structure, initial_pitch, initial_pulse
+        )
+        return sequential_event

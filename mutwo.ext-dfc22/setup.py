@@ -21,7 +21,7 @@ setuptools.setup(
     ],
     setup_requires=[],
     install_requires=[
-        "mutwo.ext-core>=0.57.0, <0.58.0",
+        "mutwo.ext-core>=0.57.1, <0.58.0",
         "mutwo.ext-music>=0.8.0, <1.0.0",
         "mutwo.ext-mbrola>=0.2.0, <1.0.0",
         "mutwo.ext-zimmermann>=0.3.5, <0.4.0",
@@ -38,6 +38,7 @@ setuptools.setup(
         # For caching variables (mutwo compute lazy function)
         "cloudpickle==2.0.0",
         "progressbar2==4.0.0",
+        "quicktions==1.13"
     ],
     extras_require=extras_require,
     python_requires=">=3.9, <4",

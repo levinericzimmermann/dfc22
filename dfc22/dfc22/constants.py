@@ -139,10 +139,16 @@ NON_TERMINAL_PAIR_PER_SEQUENTIAL_UNISONO_EVENT = core_utilities.compute_lazy(
     "etc/.non_terminal_pair_per_sequential_unisono_event.pickled",
     force_to_compute=dfc22.configurations.FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_PER_SEQUENTIAL_UNISONO_EVENT,
 )(
-    lambda _, __, ___: dfc22_converters.SequentialUnisonoEventToNonTerminalPairTuple(
-        NON_TERMINAL_PAIR_TO_PAGE_COMBINATION_TUPLE
-    ).convert(SEQUENTIAL_UNISONO_EVENT)
+    lambda pitch_offset, rhythm_offset, _, __, ___: dfc22_converters.SequentialUnisonoEventToNonTerminalPairTuple(
+        NON_TERMINAL_PAIR_TO_PAGE_COMBINATION_TUPLE,
+        pitch_offset=pitch_offset,
+        rhythm_offset=rhythm_offset,
+    ).convert(
+        SEQUENTIAL_UNISONO_EVENT
+    )
 )(
+    dfc22.configurations.PITCH_OFFSET,
+    dfc22.configurations.RHYTHM_OFFSET,
     SEQUENTIAL_UNISONO_EVENT,
     dfc22.configurations.MAX_PAPER_GENERATION_DEPTH,
     dfc22.configurations.MINIMAL_LANGUAGE_STRUCTURE_LENGTH,
@@ -167,9 +173,9 @@ NON_TERMINAL_PAIR_PER_SEQUENTIAL_UNISONO_EVENT = core_utilities.compute_lazy(
 #         unavailable_count += 1
 
 
-SIMULTANEOUS_EVENT = core_utilities.compute_lazy(
+SIMULTANEOUS_EVENT_WITH_PAGES = core_utilities.compute_lazy(
     "etc/.simultaneous_unisono_event.pickled",
-    force_to_compute=dfc22.configurations.FORCE_TO_COMPUTE_SIMULTANEOUS_UNISONO_EVENT,
+    force_to_compute=dfc22.configurations.FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_PAGES,
 )(
     lambda _: dfc22_converters.SequentialUnisonoEventToSimultaneousEvent(
         NON_TERMINAL_PAIR_TO_PAGE_COMBINATION_TUPLE,
@@ -179,6 +185,40 @@ SIMULTANEOUS_EVENT = core_utilities.compute_lazy(
     dfc22.configurations.READER_COUNT
 )
 
+
+@core_utilities.compute_lazy(
+    "etc/.simultaneous_event_with_notes.pickled",
+    force_to_compute=dfc22.configurations.FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_NOTES,
+)
+def _make_simultaneous_events_with_notes(_):
+    import progressbar
+
+    from mutwo import core_events
+
+    nested_language_structure_to_sequential_event = (
+        dfc22_converters.NestedLanguageStructureToSequentialEvent()
+    )
+
+    simultaneous_event_with_notes = core_events.SimultaneousEvent([])
+
+    for sequential_event in SIMULTANEOUS_EVENT_WITH_PAGES:
+        new_sequential_event = core_events.SequentialEvent([])
+        for event in progressbar.progressbar(sequential_event):
+            if isinstance(event, dfc22_events.Page):
+                new_sequential_event.append(
+                    nested_language_structure_to_sequential_event(event)
+                )
+            else:
+                new_sequential_event.append(event)
+
+        simultaneous_event_with_notes.append(new_sequential_event)
+
+    return simultaneous_event_with_notes
+
+
+SIMULTANEOUS_EVENT_WITH_NOTES = _make_simultaneous_events_with_notes(
+    dfc22.configurations.READER_COUNT
+)
 
 # Cleanup
 del dfc22, dfc22_events, dfc22_parameters, itertools

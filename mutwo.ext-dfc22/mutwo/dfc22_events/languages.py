@@ -38,8 +38,10 @@ class LanguageStructure(object):
         uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
             0.1, 0.2
         ),
+        initial_non_terminal_pair: dfc22_parameters.NonTerminalPair = dfc22_parameters.NonTerminalPair(),
     ):
         self._uncertain_rest_duration = uncertain_rest_duration
+        self.initial_non_terminal_pair = initial_non_terminal_pair
 
     @property
     @abc.abstractmethod
@@ -89,7 +91,7 @@ class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
     def __init__(
         self,
         uncertain_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            0.2, 0.3
+            0.3, 0.6
         ),
         phoneme_list: list[typing.Union[dfc22_parameters.XSAMPAPhoneme, str]] = ["a"],
         vowel_to_just_intonation_pitch_dict: typing.Optional[
@@ -242,7 +244,7 @@ class Word(NestedLanguageStructure[PhonemeGroup]):
         self,
         *args,
         uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            0.5, 1
+            0.4, 1.2
         ),
         **kwargs,
     ):

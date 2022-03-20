@@ -1,3 +1,4 @@
+import copy
 import functools
 import operator
 import itertools
@@ -194,12 +195,26 @@ class SequentialUnisonoEventToPageTuple(core_converters.abc.Converter):
 
 
 class SequentialUnisonoEventToNonTerminalPairTuple(SequentialUnisonoEventConverter):
+    def __init__(
+        self,
+        *args,
+        pitch_offset: zimmermann_generators.JustIntonationPitchNonTerminal = zimmermann_generators.JustIntonationPitchNonTerminal(),
+        rhythm_offset: zimmermann_generators.JustIntonationPitchNonTerminal = zimmermann_generators.JustIntonationPitchNonTerminal(),
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self._non_terminal_pair_offset = dfc22_parameters.NonTerminalPair(
+            consonant=rhythm_offset, vowel=pitch_offset
+        )
+
     def convert(
         self, sequential_unisono_event_to_convert: dfc22_events.SequentialUnisonoEvent
     ) -> tuple[dfc22_parameters.NonTerminalPair, ...]:
         non_terminal_pair_list = []
         for unisono_event in sequential_unisono_event_to_convert:
-            non_terminal_pair_list.append(unisono_event.page.non_terminal_pair)
+            non_terminal_pair_list.append(
+                unisono_event.page.non_terminal_pair + self._non_terminal_pair_offset
+            )
 
         non_terminal_pair_list = (
             non_terminal_pair_list[-1:] + non_terminal_pair_list[:-1]
@@ -381,7 +396,15 @@ class SequentialUnisonoEventToSimultaneousEvent(SequentialUnisonoEventConverter)
                 rest_part_duration = rest_duration / (len(page_combination) + 1)
                 sequential_event = simultaneous_event[movement.reader]
                 insert_time = start_time + rest_part_duration
+                initial_non_terminal_pair = (
+                    movement.unisono_event_left.right_non_terminal_pair
+                )
                 for page in page_combination:
+                    page = copy.deepcopy(page)
+                    page.initial_non_terminal_pair = initial_non_terminal_pair
+                    initial_non_terminal_pair = (
+                        initial_non_terminal_pair + page.non_terminal_pair
+                    )
                     insert_time = insert_time % duration
                     sequential_event.squash_in(insert_time, page)
                     insert_time += page.duration + rest_part_duration

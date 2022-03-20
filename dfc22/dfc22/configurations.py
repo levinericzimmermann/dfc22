@@ -1,4 +1,5 @@
 from mutwo import dfc22_converters
+from mutwo import zimmermann_generators
 
 READER_COUNT = READER_COUNT = 6
 """How many channels / loudspeakers / readers"""
@@ -42,9 +43,15 @@ FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_TO_PAGE_TUPLE = False
 
 FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_PER_SEQUENTIAL_UNISONO_EVENT = False
 
-FORCE_TO_COMPUTE_SIMULTANEOUS_UNISONO_EVENT = False
+FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_PAGES = False
+
+FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_NOTES = False
 
 FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_TO_PAGE_COMBINATION_TUPLE = False
+
+PITCH_OFFSET = zimmermann_generators.JustIntonationPitchNonTerminal("1/1")
+
+RHYTHM_OFFSET = zimmermann_generators.JustIntonationPitchNonTerminal("1/4")
 
 
 del dfc22_converters
