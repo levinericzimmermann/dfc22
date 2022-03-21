@@ -26,10 +26,10 @@ setuptools.setup(
         "mutwo.ext-mbrola>=0.2.0, <1.0.0",
         "mutwo.ext-zimmermann>=0.3.5, <0.4.0",
         "mutwo.ext-csound>=0.3.0, <0.4.0",
-        "mutwo.ext-isis>=0.5.0, <0.6.0",
+        "mutwo.ext-isis>=0.7.0, <0.8.0",
         "mutwo.ext-common-generators>=0.8.1, <0.9.0",
         # To make ascii art like images
-        "pillow==8.1.2",
+        "pillow==8.3.2",
         # To draw vector based letters
         "Qahirah==1.1",
         # Utility to draw vector based letters
@@ -38,7 +38,8 @@ setuptools.setup(
         # For caching variables (mutwo compute lazy function)
         "cloudpickle==2.0.0",
         "progressbar2==4.0.0",
-        "quicktions==1.13"
+        "quicktions==1.13",
+        # "moviepy==2.0.0.dev2",
     ],
     extras_require=extras_require,
     python_requires=">=3.9, <4",

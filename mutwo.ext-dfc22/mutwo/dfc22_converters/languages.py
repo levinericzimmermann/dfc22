@@ -27,8 +27,8 @@ __all__ = (
     "PageCountAndWordCountToPageCatalog",
     "WordToSequentialEvent",
     "SentenceToSequentialEvent",
-    "prepare_word_for_isis",
     "NestedLanguageStructureToSequentialEvent",
+    "NestedLanguageStructureToISiSSafeNestedLanguageStructure",
 )
 
 
@@ -758,7 +758,7 @@ def find_duration(
         pulse_list = [ratio]
 
     # return float(random.choice(pulse_list, 1)[0])
-    return float(max(pulse_list))
+    return float(pulse_list[int(len(pulse_list) // 2)])
 
 
 def make_rest(
@@ -786,41 +786,86 @@ def make_rest(
     return event_class(**keyword_argument_dict)
 
 
-# TODO(REPLACE BY NestedLanguageStructureToISiSSafeNestedLanguageStructure)
-def prepare_word_for_isis(word: dfc22_events.Word):
-    """Tie events with consonants to events with vowels"""
-
-    def process_surviving_event(phoneme_group0, phoneme_group1):
-        phoneme_group0.phoneme_list.extend(phoneme_group1.phoneme_list)
-        phoneme_group0.uncertain_duration = dfc22_parameters.UncertainRange(
-            phoneme_group0.uncertain_duration.start
-            + phoneme_group1.uncertain_duration.start,
-            phoneme_group0.uncertain_duration.end
-            + phoneme_group1.uncertain_duration.end,
-        )
-
-    word.tie_by(
-        lambda phoneme_group0, phoneme_group1: all(
-            [
-                all([phoneme.is_consonant for phoneme in phoneme_group.phoneme_list])
-                for phoneme_group in (phoneme_group0, phoneme_group1)
-            ]
-        ),
-        process_surviving_event,
-    )
-    word.tie_by(
-        lambda phoneme_group0, phoneme_group1: all(
-            [phoneme.is_consonant for phoneme in phoneme_group0.phoneme_list]
-        )
-        and all([phoneme.is_vowel for phoneme in phoneme_group1.phoneme_list]),
-        process_surviving_event,
-    )
-
-
 class NestedLanguageStructureToISiSSafeNestedLanguageStructure(
     core_converters.abc.Converter
 ):
-    pass
+    def _convert_word(self, word_to_convert: dfc22_events.Word) -> dfc22_events.Word:
+        def process_surviving_event(phoneme_group0, phoneme_group1):
+            phoneme_group0.phoneme_list.extend(phoneme_group1.phoneme_list)
+            phoneme_group0.uncertain_duration = dfc22_parameters.UncertainRange(
+                phoneme_group0.uncertain_duration.start
+                + phoneme_group1.uncertain_duration.start,
+                phoneme_group0.uncertain_duration.end
+                + phoneme_group1.uncertain_duration.end,
+            )
+            phoneme_group0.uncertain_rest_duration = dfc22_parameters.UncertainRange(
+                phoneme_group0.uncertain_rest_duration.start
+                + phoneme_group1.uncertain_rest_duration.start,
+                phoneme_group0.uncertain_rest_duration.end
+                + phoneme_group1.uncertain_rest_duration.end,
+            )
+
+        adjusted_word = word_to_convert.tie_by(
+            lambda phoneme_group0, phoneme_group1: all(
+                [
+                    all(
+                        [phoneme.is_consonant for phoneme in phoneme_group.phoneme_list]
+                    )
+                    for phoneme_group in (phoneme_group0, phoneme_group1)
+                ]
+            ),
+            process_surviving_event,
+            mutate=False,
+        ).tie_by(
+            lambda phoneme_group0, phoneme_group1: all(
+                [phoneme.is_consonant for phoneme in phoneme_group0.phoneme_list]
+            )
+            and all([phoneme.is_vowel for phoneme in phoneme_group1.phoneme_list]),
+            process_surviving_event,
+        )
+
+        if all(phoneme.is_consonant for phoneme in adjusted_word[-1].phoneme_list):
+            adjusted_word[-2].uncertain_duration = dfc22_parameters.UncertainRange(
+                adjusted_word[-2].uncertain_duration.start
+                + adjusted_word[-1].uncertain_duration.start,
+                adjusted_word[-2].uncertain_duration.end
+                + adjusted_word[-1].uncertain_duration.end,
+            )
+            adjusted_word[-2].uncertain_rest_duration = dfc22_parameters.UncertainRange(
+                adjusted_word[-2].uncertain_rest_duration.start
+                + adjusted_word[-1].uncertain_rest_duration.start,
+                adjusted_word[-2].uncertain_rest_duration.end
+                + adjusted_word[-1].uncertain_rest_duration.end,
+            )
+            adjusted_word = adjusted_word[:-1]
+        try:
+            assert adjusted_word.duration == word_to_convert.duration
+        except AssertionError:
+            raise Exception(
+                (
+                    "Unequal duration! "
+                    f"original: {word_to_convert.duration}; "
+                    f"adjusted: {adjusted_word.duration}"
+                )
+            )
+        return adjusted_word
+
+    def _convert_event(self, event_to_convert: dfc22_events.LanguageStructure):
+        if isinstance(event_to_convert, dfc22_events.Word):
+            return self._convert_word(event_to_convert)
+        else:
+            nested_language_structure = event_to_convert.empty_copy()
+            for event in event_to_convert:
+                nested_language_structure.append(self._convert_event(event))
+            assert nested_language_structure.duration == event_to_convert.duration
+            return nested_language_structure
+
+    def convert(
+        self, event_to_convert: dfc22_events.LanguageStructure
+    ) -> dfc22_events.LanguageStructure:
+        converted_event = self._convert_event(event_to_convert)
+        assert converted_event.duration == event_to_convert.duration
+        return converted_event
 
 
 class WordToSequentialEvent(core_converters.abc.Converter):
@@ -898,6 +943,7 @@ class WordToSequentialEvent(core_converters.abc.Converter):
                 "duration": self._phoneme_group_to_duration(
                     phoneme_group_to_convert, initial_pulse
                 ),
+                "pulse": initial_pulse.ratio,
             }
         )
         note_like = self._event_class(**keyword_argument_dict)
@@ -981,9 +1027,12 @@ class SentenceToSequentialEvent(core_converters.abc.Converter):
 
 class NestedLanguageStructureToSequentialEvent(core_converters.abc.Converter):
     def __init__(
-        self, word_to_sequential_event: WordToSequentialEvent = WordToSequentialEvent()
+        self,
+        word_to_sequential_event: WordToSequentialEvent = WordToSequentialEvent(),
+        seed: int = 100,
     ):
         self._word_to_sequential_event = word_to_sequential_event
+        self._random = np.random.default_rng(seed)
 
     def _append_word_to_sequential_event(
         self,
@@ -996,6 +1045,21 @@ class NestedLanguageStructureToSequentialEvent(core_converters.abc.Converter):
             word, initial_pitch, initial_pulse
         )
         sequential_event_to_append_to.extend(word)
+
+    def _append_rest_to_sequential_event(
+        self,
+        sequential_event_to_append_to: core_events.SequentialEvent,
+        nested_language_structure: dfc22_events.NestedLanguageStructure,
+        initial_pulse: typing.Optional[music_parameters.JustIntonationPitch] = None,
+    ):
+        sequential_event_to_append_to.append(
+            make_rest(
+                self._word_to_sequential_event._event_class,
+                initial_pulse,
+                nested_language_structure.uncertain_rest_duration,
+                self._random,
+            )
+        )
 
     def _convert(
         self,
@@ -1033,6 +1097,10 @@ class NestedLanguageStructureToSequentialEvent(core_converters.abc.Converter):
                 )
                 initial_pitch += language_structure.pitch_movement
                 initial_pulse += language_structure.time_movement
+
+            self._append_rest_to_sequential_event(
+                sequential_event_to_append_to, nested_language_structure, initial_pulse
+            )
 
         else:
             raise NotImplementedError(

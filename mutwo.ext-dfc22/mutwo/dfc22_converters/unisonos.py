@@ -232,9 +232,16 @@ class SequentialUnisonoEventToNonTerminalPairTuple(SequentialUnisonoEventConvert
 
 
 class SequentialUnisonoEventToSimultaneousEvent(SequentialUnisonoEventConverter):
-    def __init__(self, *args, reader_count: int, **kwargs):
+    def __init__(
+        self,
+        *args,
+        reader_count: int,
+        page_buffer_duration: typing.Optional[float] = None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._reader_count = reader_count
+        self._page_buffer_duration = page_buffer_duration
 
     # jede valide verbindung muss eine konkrete interpolation aussuchen
     # (also eine range von 0 bis len(solution_tuple))
@@ -258,9 +265,14 @@ class SequentialUnisonoEventToSimultaneousEvent(SequentialUnisonoEventConverter)
     # ...danach kann bestimmt werden wie "harmonisch" die gewaehlte loesung ist.
 
     class DataToSimultaneousEvent(core_converters.abc.Converter):
-        PAGE_BUFFER_DURATION = 2.5
-
-        def __init__(self, reader_count: int):
+        def __init__(
+            self, reader_count: int, page_buffer_duration: typing.Optional[float]
+        ):
+            if page_buffer_duration is None:
+                page_buffer_duration = (
+                    dfc22_converters.configurations.PAGE_BUFFER_DURATION
+                )
+            self._page_buffer_duration = page_buffer_duration
             self._reader_count = reader_count
 
         def _set_unisono_events_duration(
@@ -277,7 +289,7 @@ class SequentialUnisonoEventToSimultaneousEvent(SequentialUnisonoEventConverter)
                 page_combination_tuple, movement_tuple
             ):
                 minimal_duration = sum(page.duration for page in page_combination) + (
-                    len(page_combination) * self.PAGE_BUFFER_DURATION
+                    len(page_combination) * self._page_buffer_duration
                 )
                 left_index, right_index = (
                     movement.unisono_event_left_index,
@@ -477,7 +489,9 @@ class SequentialUnisonoEventToSimultaneousEvent(SequentialUnisonoEventConverter)
         *args,
         **kwargs,
     ) -> core_events.SimultaneousEvent:
-        return self.DataToSimultaneousEvent(self._reader_count).convert(*args, **kwargs)
+        return self.DataToSimultaneousEvent(
+            self._reader_count, self._page_buffer_duration
+        ).convert(*args, **kwargs)
 
     def convert(
         self, sequential_unisono_event_to_convert: dfc22_events.SequentialUnisonoEvent

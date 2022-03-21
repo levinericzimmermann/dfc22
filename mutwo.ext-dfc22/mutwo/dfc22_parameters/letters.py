@@ -22,6 +22,7 @@ from mutwo import dfc22_parameters
 
 __all__ = (
     "LetterElement",
+    "EmptyLetterElement",
     "Polygon",
     "Triangle",
     "Quad",
@@ -112,6 +113,11 @@ class LetterElement(abc.ABC):
     @abc.abstractmethod
     def draw_on(self, letter_canvas: LetterCanvas):
         raise NotImplementedError
+
+
+class EmptyLetterElement(LetterElement):
+    def draw_on(self, _: LetterCanvas):
+        pass
 
 
 class Polygon(LetterElement, geometer.Polygon):

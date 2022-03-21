@@ -1,7 +1,6 @@
 import abc
 import typing
-
-import numpy as np
+import warnings
 
 from mutwo import core_constants
 from mutwo import core_events
@@ -90,9 +89,7 @@ class LanguageStructure(object):
 class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
     def __init__(
         self,
-        uncertain_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            0.3, 0.6
-        ),
+        uncertain_duration: typing.Optional[dfc22_parameters.UncertainRange] = None,
         phoneme_list: list[typing.Union[dfc22_parameters.XSAMPAPhoneme, str]] = ["a"],
         vowel_to_just_intonation_pitch_dict: typing.Optional[
             dict[dfc22_parameters.XSAMPAPhoneme, music_parameters.JustIntonationPitch]
@@ -100,10 +97,18 @@ class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
         consonant_to_just_intonation_pitch_dict: typing.Optional[
             dict[dfc22_parameters.XSAMPAPhoneme, music_parameters.JustIntonationPitch]
         ] = None,
-        uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            0.1, 0.2
-        ),
+        uncertain_rest_duration: typing.Optional[
+            dfc22_parameters.UncertainRange
+        ] = None,
     ):
+        if uncertain_duration is None:
+            uncertain_duration = (
+                dfc22_events.configurations.DEFAULT_UNCERTAIN_DURATION_FOR_PHONEME_GROUP
+            )
+        if uncertain_rest_duration is None:
+            uncertain_rest_duration = (
+                dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_PHONEME_GROUP
+            )
         LanguageStructure.__init__(self, uncertain_rest_duration)
         if not vowel_to_just_intonation_pitch_dict:
             vowel_to_just_intonation_pitch_dict = (
@@ -159,12 +164,26 @@ class PhonemeGroup(core_events.SimpleEvent, LanguageStructure):
     def uncertain_duration(self, uncertain_duration: dfc22_parameters.UncertainRange):
         self._uncertain_duration = uncertain_duration
 
+    @staticmethod
+    def _get_center(start: float, stop: float) -> float:
+        return ((stop - start) / 2) + start
+
     @property
     def duration(self) -> core_constants.DurationType:
-        return np.average([self.uncertain_duration.start, self.uncertain_duration.end])
+        return self._get_center(
+            self.uncertain_duration.start, self.uncertain_duration.end
+        ) + self._get_center(
+            self.uncertain_rest_duration.start, self.uncertain_rest_duration.end
+        )
 
     @duration.setter
     def duration(self, duration: core_constants.DurationType):
+        warnings.warn(
+            (
+                "You set the duration of phoneme group. "
+                "This may lead to unexpected results."
+            )
+        )
         self.uncertain_duration = dfc22_parameters.UncertainRange(
             duration, duration * 1.0001
         )
@@ -243,11 +262,15 @@ class Word(NestedLanguageStructure[PhonemeGroup]):
     def __init__(
         self,
         *args,
-        uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            0.4, 1.2
-        ),
+        uncertain_rest_duration: typing.Optional[
+            dfc22_parameters.UncertainRange
+        ] = None,
         **kwargs,
     ):
+        if uncertain_rest_duration is None:
+            uncertain_rest_duration = (
+                dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_WORD
+            )
         super().__init__(
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )
@@ -271,11 +294,15 @@ class Sentence(NestedLanguageStructure[Word]):
     def __init__(
         self,
         *args,
-        uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            1, 2
-        ),
+        uncertain_rest_duration: typing.Optional[
+            dfc22_parameters.UncertainRange
+        ] = None,
         **kwargs,
     ):
+        if uncertain_rest_duration is None:
+            uncertain_rest_duration = (
+                dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_SENTENCE
+            )
         super().__init__(
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )
@@ -287,11 +314,15 @@ class Paragraph(NestedLanguageStructure[Sentence]):
     def __init__(
         self,
         *args,
-        uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            2, 3
-        ),
+        uncertain_rest_duration: typing.Optional[
+            dfc22_parameters.UncertainRange
+        ] = None,
         **kwargs,
     ):
+        if uncertain_rest_duration is None:
+            uncertain_rest_duration = (
+                dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_PARAGRAPH
+            )
         super().__init__(
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )
@@ -310,11 +341,15 @@ class Page(NestedLanguageStructure[Paragraph]):
     def __init__(
         self,
         *args,
-        uncertain_rest_duration: dfc22_parameters.UncertainRange = dfc22_parameters.UncertainRange(
-            3, 13
-        ),
+        uncertain_rest_duration: typing.Optional[
+            dfc22_parameters.UncertainRange
+        ] = None,
         **kwargs,
     ):
+        if uncertain_rest_duration is None:
+            uncertain_rest_duration = (
+                dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_PAGE
+            )
         super().__init__(
             *args, uncertain_rest_duration=uncertain_rest_duration, **kwargs
         )

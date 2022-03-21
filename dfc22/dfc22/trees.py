@@ -124,7 +124,7 @@ class PhonemeTree(treelib.Tree):
             + [
                 dfc22_parameters.Letter(
                     urletter.argument_to_resolvable_object_dict["letter_canvas"],
-                    [],
+                    [dfc22_parameters.EmptyLetterElement()],
                     [[dfc22_parameters.XSAMPAPhoneme("_")]],
                 )
             ]

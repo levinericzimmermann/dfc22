@@ -8,7 +8,7 @@ from mutwo import core_events
 from mutwo import csound_converters
 
 
-__all__ = ("EventToMixedSoundFile",)
+__all__ = ("EventToMixedSoundFile", "EventToPulseSoundFile")
 
 
 class EventToMixedSoundFile(csound_converters.EventToSoundFile):
@@ -42,11 +42,20 @@ class EventToMixedSoundFile(csound_converters.EventToSoundFile):
         ) -> tuple[str, ...]:
             if self._shall_event_be_passed_to_generate_sound_file(event_to_convert):
                 path = "{}/{}.wav".format(self._sound_file_directory_path, uuid.uuid4())
-                self._event_to_sound_file(event_to_convert, path)
+                future = self._executor.submit(self._event_to_sound_file, event_to_convert, path)
+                self._future_list.append(future)
                 event_to_convert = core_events.SimpleEvent(event_to_convert.duration)
                 event_to_convert.path = path
 
             return super()._convert_event(event_to_convert, absolute_time)
+
+        def convert(self, *args, **kwargs):
+            self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=16)
+            self._future_list = []
+            return_value = super().convert(*args, **kwargs)
+            # concurrent.futures.wait(self._future_list)
+            self._executor.shutdown(wait=True)
+            return return_value
 
     orchestra = """
 instr 1
@@ -75,3 +84,12 @@ endin
         return_value = super().convert(*args, **kwargs)
         self._remove_orchestra()
         return return_value
+
+
+class EventToPulseSoundFile(csound_converters.EventToSoundFile):
+    def __init__(self):
+        event_to_csound_score = csound_converters.EventToCsoundScore(
+            p4=lambda simple_event: simple_event.volume.amplitude,
+        )
+        csound_orchestra_path = "etc/pulses.orc"
+        super().__init__(csound_orchestra_path, event_to_csound_score)

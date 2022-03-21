@@ -27,6 +27,7 @@ class LetterTupleToImage(core_converters.abc.Converter):
         x_whitespace: float = -30,
         y_whitespace: float = 35,
         letter_height: float = 200,
+        background_color: str = "white",
     ):
         self._paper_canvas = paper_canvas
         self._x_margin = x_margin
@@ -35,6 +36,7 @@ class LetterTupleToImage(core_converters.abc.Converter):
         self._y_whitespace = y_whitespace
         self._letter_height = letter_height
         self._max_x = self._paper_canvas.x - self._x_margin
+        self._background_color = background_color
 
     def _scale_letter_image(self, letter_image_to_scale: Image.Image) -> Image.Image:
         image_height = letter_image_to_scale.height
@@ -45,7 +47,9 @@ class LetterTupleToImage(core_converters.abc.Converter):
         self, letter_tuple_to_convert: tuple[dfc22_parameters.Letter, ...], path: str
     ):
         image = Image.new(
-            "RGBA", (self._paper_canvas.x, self._paper_canvas.y), color='white'
+            "RGBA",
+            (self._paper_canvas.x, self._paper_canvas.y),
+            color=self._background_color,
         )
         current_x, current_y = self._x_margin, self._y_margin
         for letter in letter_tuple_to_convert:

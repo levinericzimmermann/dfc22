@@ -1,4 +1,6 @@
 from mutwo import dfc22_converters
+from mutwo import dfc22_events
+from mutwo import dfc22_parameters
 from mutwo import zimmermann_generators
 
 READER_COUNT = READER_COUNT = 6
@@ -47,11 +49,42 @@ FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_PAGES = False
 
 FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_NOTES = False
 
+FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_NOTES_FOR_ISIS = False
+
 FORCE_TO_COMPUTE_NON_TERMINAL_PAIR_TO_PAGE_COMBINATION_TUPLE = False
 
 PITCH_OFFSET = zimmermann_generators.JustIntonationPitchNonTerminal("1/1")
 
-RHYTHM_OFFSET = zimmermann_generators.JustIntonationPitchNonTerminal("1/4")
+RHYTHM_OFFSET = zimmermann_generators.JustIntonationPitchNonTerminal("1/8")
+
+dfc22_converters.configurations.PAGE_BUFFER_DURATION = 3
+"""longer -> longer rests between pages"""
+
+dfc22_events.configurations.DEFAULT_UNCERTAIN_DURATION_FOR_PHONEME_GROUP = (
+    dfc22_parameters.UncertainRange(0.1, 0.195)
+)
+# https://www.researchgate.net/figure/The-average-duration-of-phonemes_tbl1_352355866
+# https://www.asel.udel.edu/icslp/cdrom/vol4/301/a301.pdf
+
+dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_PHONEME_GROUP = (
+    dfc22_parameters.UncertainRange(0.04, 0.08)
+)
+
+dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_WORD = (
+    dfc22_parameters.UncertainRange(0.1, 0.3)
+)
+
+dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_SENTENCE = (
+    dfc22_parameters.UncertainRange(0.4, 1)
+)
+
+dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_PARAGRAPH = (
+    dfc22_parameters.UncertainRange(1.5, 2.5)
+)
+
+dfc22_events.configurations.DEFAULT_UNCERTAIN_REST_DURATION_FOR_PAGE = (
+    dfc22_parameters.UncertainRange(3, 8)
+)
 
 
-del dfc22_converters
+del dfc22_converters, dfc22_parameters, zimmermann_generators

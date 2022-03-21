@@ -6,4 +6,6 @@ from .languages import *
 from .letters import *
 from .papers import *
 from .unisonos import *
+from .pulses import *
 from .csound import *
+from .videos import *

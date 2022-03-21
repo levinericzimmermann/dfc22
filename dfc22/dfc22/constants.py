@@ -1,5 +1,3 @@
-import itertools
-
 from mutwo import core_utilities
 from mutwo import dfc22_converters
 from mutwo import dfc22_events
@@ -220,5 +218,63 @@ SIMULTANEOUS_EVENT_WITH_NOTES = _make_simultaneous_events_with_notes(
     dfc22.configurations.READER_COUNT
 )
 
-# Cleanup
-del dfc22, dfc22_events, dfc22_parameters, itertools
+
+@core_utilities.compute_lazy(
+    "etc/.simultaneous_event_with_isis_friendly--_--notes.pickled",
+    force_to_compute=dfc22.configurations.FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_NOTES
+    or dfc22.configurations.FORCE_TO_COMPUTE_SIMULTANEOUS_EVENT_WITH_NOTES_FOR_ISIS,
+)
+def _make_simultaneous_events_with_isis_friendly_notes():
+    import copy
+
+    import progressbar
+
+    from mutwo import core_events
+
+    nested_language_structure_to_isis_friendly_nested_language_structure = (
+        dfc22_converters.NestedLanguageStructureToISiSSafeNestedLanguageStructure()
+    )
+
+    nested_language_structure_to_sequential_event = (
+        dfc22_converters.NestedLanguageStructureToSequentialEvent(
+            dfc22_converters.WordToSequentialEvent(
+                dfc22_events.NoteLikeWithVowelAndConsonantTuple
+            )
+        )
+    )
+
+    simultaneous_event_with_isis_friendly_notes = core_events.SimultaneousEvent([])
+
+    for sequential_event in copy.deepcopy(SIMULTANEOUS_EVENT_WITH_PAGES):
+        new_sequential_event = core_events.SequentialEvent([])
+        for event in progressbar.progressbar(sequential_event):
+            if isinstance(event, dfc22_events.Page):
+                event = nested_language_structure_to_isis_friendly_nested_language_structure.convert(
+                    event
+                )
+                converted_page = nested_language_structure_to_sequential_event(event)
+
+                def is_rest(note_like):
+                    return note_like.vowel == "_"
+
+                def process_surviving_event(event0, event1):
+                    event0.duration += event1.duration
+                    event0.pitch_list = [music_parameters.MidiPitch(0)]
+
+                converted_page = converted_page.tie_by(
+                    lambda event0, event1: is_rest(event0) and is_rest(event1),
+                    process_surviving_event,
+                    mutate=False,
+                )
+                new_sequential_event.append(converted_page)
+            else:
+                new_sequential_event.append(event)
+
+        simultaneous_event_with_isis_friendly_notes.append(new_sequential_event)
+
+    return simultaneous_event_with_isis_friendly_notes
+
+
+SIMULTANEOUS_EVENT_WITH_ISIS_FRIENDLY_NOTES = (
+    _make_simultaneous_events_with_isis_friendly_notes()
+)
