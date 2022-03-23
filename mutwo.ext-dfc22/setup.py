@@ -39,7 +39,6 @@ setuptools.setup(
         "cloudpickle==2.0.0",
         "progressbar2==4.0.0",
         "quicktions==1.13",
-        # "moviepy==2.0.0.dev2",
     ],
     extras_require=extras_require,
     python_requires=">=3.9, <4",
